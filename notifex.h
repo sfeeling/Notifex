@@ -1,28 +1,11 @@
-#ifndef NOTIFEX_H
-#define NOTIFEX_H
+//
+// Created by sfeeling on 18-11-18.
+//
 
-#include <queue>
+#ifndef NOTIFEX_NOTIFEX_H
+#define NOTIFEX_NOTIFEX_H
 
-namespace notifex
-{
-
-class EventBase
-{
-public:
-    EventBase() = default;
-    ~EventBase() = default;
-
-    void CreateEvent();
-    void AddEvent();
-    void Dispatch();
-
-private:
-    std::queue<int> event_q_;
-
-};
+#include "EventBase.h"
 
 
-}   // namespace notifex
-
-
-#endif
+#endif // NOTIFEX_NOTIFEX_H
