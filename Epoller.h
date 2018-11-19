@@ -21,7 +21,7 @@ public:
     void RemoveEvent() override;
 
     // Demultiplex
-    std::vector<int> GetActiveList() override;
+    std::vector<int> GetActiveList(const int &msec) override;
 
 private:
     int ep_fd_;

@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include <memory.h>
 
-notifex::Event::Event(int fd, void (*callback)(int, int, void *))
+notifex::Event::Event(const int &fd, void (*callback)(int, int, void *))
     :   fd_(fd),
         ev_in_(true),
         ev_out_(false),

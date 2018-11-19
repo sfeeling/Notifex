@@ -1,0 +1,59 @@
+//
+// Created by sfeeling on 18-11-19.
+//
+
+
+#include "Timer.h"
+
+#include <iostream>
+
+notifex::Timer::Timer(int sec, int msec, void (*callback)())
+    :   interval_({sec, msec * 1000}),   // 秒和微秒
+        triggering_time_({0, 0}),
+        callback_(callback),
+        ev_once_(true)
+{
+
+}
+
+void notifex::Timer::SetTriggeringTime(const int &sec, const int &msec)
+{
+    triggering_time_.tv_sec = sec;
+    triggering_time_.tv_usec = msec * 1000;
+}
+
+long long notifex::Timer::GetTriggeringTime()
+{
+    return triggering_time_.tv_sec * 1000 + triggering_time_.tv_usec / 1000;
+}
+
+void notifex::Timer::SetTriggeringTime(const long long int &msec)
+{
+    triggering_time_.tv_sec = msec / 1000;
+    triggering_time_.tv_usec = (msec % 1000) * 1000;
+}
+
+void notifex::Timer::SetTriggeringTime(const timeval *time_stamp)
+{
+    triggering_time_.tv_sec = time_stamp->tv_sec + interval_.tv_sec;
+    triggering_time_.tv_usec = time_stamp->tv_usec + interval_.tv_usec;
+    if (triggering_time_.tv_usec >= 1000000)
+    {
+        triggering_time_.tv_usec -= 1000000;
+        triggering_time_.tv_sec += 1;
+    }
+}
+
+void notifex::Timer::Trigger()
+{
+    // 触发回调函数
+    std::cout << "Trigger()内部" << std::endl;
+    (*callback_)();
+    triggering_time_.tv_sec += interval_.tv_sec;
+    triggering_time_.tv_usec += interval_.tv_usec;
+    if (triggering_time_.tv_usec >= 1000000)
+    {
+        triggering_time_.tv_usec -= 1000000;
+        triggering_time_.tv_sec += 1;
+    }
+}

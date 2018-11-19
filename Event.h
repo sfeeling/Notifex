@@ -11,12 +11,13 @@ namespace notifex
 class Event
 {
 public:
-    explicit Event(int fd, void (*callback)(int, int, void *));
+    explicit Event(const int &fd, void (*callback)(int, int, void *));
     ~Event() = default;
     Event(const Event &) = default;
 
     inline bool EventIn() const;
     inline bool EventOut() const;
+    inline void Trigger();
 
 public:
     int fd_;
@@ -39,6 +40,11 @@ inline bool Event::EventIn() const
 inline bool Event::EventOut() const
 {
     return ev_out_;
+}
+
+inline void Event::Trigger()
+{
+    (*callback_)(fd_, res_, arg_);
 }
 
 

@@ -4,6 +4,7 @@
 
 #include "Epoller.h"
 
+#include <cassert>
 #include <iostream>
 
 void notifex::Epoller::RegisterEvent(const Event &event)
@@ -28,11 +29,15 @@ void notifex::Epoller::RemoveEvent()
 
 }
 
-std::vector<int> notifex::Epoller::GetActiveList()
+std::vector<int> notifex::Epoller::GetActiveList(const int &msec)
 {
     std::vector<int> active_list;
-    int n_fds = epoll_wait(ep_fd_, event_list_, ACTIVE_SIZE, -1);
-    std::cout << "n_fds: " << n_fds << std::endl;
+    // TODO ACTIVE_SIZE应为最大的fd数，而不是返回数
+    std::cout << "before epoll_wait" << std::endl;
+    int n_fds = epoll_wait(ep_fd_, event_list_, ACTIVE_SIZE, msec);
+    std::cout << "after epoll_wait nfds: " << n_fds << std::endl;
+    if (n_fds == 0)
+        return active_list;
     if (n_fds < 0)
     {
         // TODO

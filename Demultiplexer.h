@@ -22,7 +22,7 @@ public:
     virtual void RemoveEvent() = 0;
 
     // Demultiplex
-    virtual std::vector<int> GetActiveList() = 0;
+    virtual std::vector<int> GetActiveList(const int &msec) = 0;
 };
 
 
