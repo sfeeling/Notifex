@@ -18,7 +18,7 @@ public:
     ~Epoller() override = default;
 
     void RegisterEvent(const Event &) override;
-    void RemoveEvent() override;
+    void RemoveEvent(const int &fd) override;
 
     // Demultiplex
     std::vector<int> GetActiveList(const int &msec) override;

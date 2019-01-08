@@ -18,7 +18,9 @@ namespace notifex
 
 
 EventBase::EventBase()
-    :   demultiplexer_(std::make_unique<Epoller>())
+    :   debug_mode_(false),
+        demultiplexer_(std::make_unique<Epoller>())
+
 {
 
 }
@@ -32,7 +34,11 @@ void EventBase::AddEvent(Event &event)
 void EventBase::AddTimer(Timer &timer)
 {
     timer_q_.push(std::shared_ptr<Timer>(&timer));
-    std::cout << "AddTimer GetTime: " << timer_q_.top()->GetTriggeringTime() << std::endl;
+    if (debug_mode_)
+    {
+        std::cout << "DEBUG AddTimer GetTime: " << timer_q_.top()->GetTriggeringTime() << std::endl;
+    }
+
 }
 
 void EventBase::Dispatch()
@@ -49,7 +55,10 @@ void EventBase::Dispatch()
         std::shared_ptr<Timer> ptr = timer_q_.top();
         timer_q_.pop();
         ptr->SetTriggeringTime(&time_stamp);
-        std::cout << "Initialize Timer: " << ptr->GetTriggeringTime() << std::endl;
+        if (debug_mode_)
+        {
+            std::cout << "DEBUG Initialize Timer: " << ptr->GetTriggeringTime() << std::endl;
+        }
         timer_q_.push(ptr);
     }
 
@@ -70,7 +79,11 @@ void EventBase::Dispatch()
             {
                 std::shared_ptr<Timer> ptr = timer_q_.top();
                 timer_q_.pop();
-                std::cout << "Trigger before epoll: " << ptr->GetTriggeringTime() << std::endl;
+                if (debug_mode_)
+                {
+                    std::cout << "Trigger before epoll: " << ptr->GetTriggeringTime() << std::endl;
+                }
+
                 ptr->Trigger();
                 timer_q_.push(ptr);
             }
@@ -89,7 +102,8 @@ void EventBase::Dispatch()
             }
         }
 
-        std::cout << "timeout: " << timeout << std::endl;
+        if (debug_mode_)
+            std::cout << "DEBUG timeout: " << timeout << std::endl;
         // IO复用
         std::vector<int> active_list = demultiplexer_->GetActiveList(timeout);
 
@@ -102,7 +116,11 @@ void EventBase::Dispatch()
             {
                 std::shared_ptr<Timer> ptr = timer_q_.top();
                 timer_q_.pop();
-                std::cout << "Trigger after epoll: " << ptr->GetTriggeringTime() << std::endl;
+                if (debug_mode_)
+                {
+                    std::cout << "DEBUG Trigger after epoll: " << ptr->GetTriggeringTime() << std::endl;
+                }
+
                 ptr->Trigger();
                 timer_q_.push(ptr);
             }
@@ -111,11 +129,20 @@ void EventBase::Dispatch()
         // 处理每个事件
         for (auto fd : active_list)
         {
-            std::cout << "fd from active_list: " << fd << std::endl;
+            if (debug_mode_)
+            {
+                std::cout << "DEBUG fd from active_list: " << fd << std::endl;
+            }
+
             std::shared_ptr<Event> ev_ptr = event_q_[fd];
             ev_ptr->Trigger();
         }
     }
+}
+
+void EventBase::Debug()
+{
+    debug_mode_ = true;
 }
 
 

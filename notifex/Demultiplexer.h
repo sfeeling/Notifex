@@ -18,8 +18,8 @@ public:
     Demultiplexer() = default;
     virtual ~Demultiplexer() = default;
 
-    virtual void RegisterEvent(const Event &) = 0;
-    virtual void RemoveEvent() = 0;
+    virtual void RegisterEvent(const Event &event) = 0;
+    virtual void RemoveEvent(const int &fd) = 0;
 
     // Demultiplex
     virtual std::vector<int> GetActiveList(const int &msec) = 0;

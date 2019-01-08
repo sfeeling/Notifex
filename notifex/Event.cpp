@@ -18,5 +18,6 @@ notifex::Event::Event(const int &fd, void (*callback)(int, int, void *))
 {
     // 设置为非阻塞
     int flags = fcntl(fd_, F_GETFL, 0);
-    fcntl(fd_, F_SETFL, flags | O_NONBLOCK);
+    flags |= O_NONBLOCK;
+    fcntl(fd_, F_SETFL, flags);
 }

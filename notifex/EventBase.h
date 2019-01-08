@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include "Epoller.h"
 #include "Event.h"
+#include "ThreadPool.h"
 #include "Timer.h"
 
 namespace notifex
@@ -26,10 +27,20 @@ public:
 
     void AddEvent(Event &event);
     void AddTimer(Timer &timer);
+    //void AddSignal();
     void Dispatch();
 
+    void Debug();
+
 private:
+    // DEBUG模式
+    bool debug_mode_;
+
+    // 事件队列
     std::unordered_map<int, std::shared_ptr<Event>> event_q_;
+
+    // 复用器
+    std::unique_ptr<Demultiplexer> demultiplexer_;
 
     // Timer队列的比较器
     struct cmp
@@ -41,8 +52,6 @@ private:
     };
     // Timer队列
     std::priority_queue<std::shared_ptr<Timer>, std::vector<std::shared_ptr<Timer>>, cmp> timer_q_;
-
-    std::unique_ptr<Demultiplexer> demultiplexer_;
 
 };
 

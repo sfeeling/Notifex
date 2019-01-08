@@ -3,4 +3,4 @@ project(Notifex)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_library(notifex SHARED notifex.h EventBase.cpp EventBase.h Demultiplexer.h Epoller.cpp Epoller.h Event.cpp Event.h Timer.cpp Timer.h)
+add_library(notifex SHARED notifex/notifex.h notifex/EventBase.cpp notifex/EventBase.h notifex/Demultiplexer.h notifex/Epoller.cpp notifex/Epoller.h notifex/Event.cpp notifex/Event.h notifex/Timer.cpp notifex/Timer.h notifex/ThreadPool.cpp notifex/ThreadPool.h)

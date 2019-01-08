@@ -27,6 +27,8 @@ public:
     void Trigger();
 
 private:
+    bool debug_mode_;
+
     timeval interval_;  // 时间间隔
     timeval triggering_time_;   // 触发时间
     timeval last_time_; // 上次触发时间

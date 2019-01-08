@@ -11,7 +11,8 @@ notifex::Timer::Timer(int sec, int msec, void (*callback)())
     :   interval_({sec, msec * 1000}),   // 秒和微秒
         triggering_time_({0, 0}),
         callback_(callback),
-        ev_once_(true)
+        ev_once_(true),
+        debug_mode_(false)
 {
 
 }
@@ -47,7 +48,8 @@ void notifex::Timer::SetTriggeringTime(const timeval *time_stamp)
 void notifex::Timer::Trigger()
 {
     // 触发回调函数
-    std::cout << "Trigger()内部" << std::endl;
+    if (debug_mode_)
+        std::cout << "Trigger()内部" << std::endl;
     (*callback_)();
     triggering_time_.tv_sec += interval_.tv_sec;
     triggering_time_.tv_usec += interval_.tv_usec;
