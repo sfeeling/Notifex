@@ -17,7 +17,7 @@ public:
     // 精度暂时限定在毫秒
     Timer(int sec, int msec, void (*callback)());
     ~Timer() = default;
-    Timer(const Timer &) = default;
+    Timer(const Timer &);
 
     void SetTriggeringTime(const int &sec, const int &msec);
     void SetTriggeringTime(const long long int &msec);
@@ -25,6 +25,9 @@ public:
     long long GetTriggeringTime();
 
     void Trigger();
+    inline bool Once();
+    inline void SetOnce();
+    inline void SetRepeated();
 
 private:
     bool debug_mode_;
@@ -36,6 +39,21 @@ private:
 
     void (*callback_)();
 };
+
+inline bool Timer::Once()
+{
+    return ev_once_;
+}
+
+inline void Timer::SetOnce()
+{
+    ev_once_ = true;
+}
+
+inline void Timer::SetRepeated()
+{
+    ev_once_ = false;
+}
 
 }   // namespace notifex
 

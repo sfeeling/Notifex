@@ -13,12 +13,13 @@ class Event
 public:
     explicit Event(const int &fd, void (*callback)(int, int, void *));
     ~Event() = default;
-    Event(const Event &) = default;
+    Event(const Event &);
 
     inline bool EventIn() const;
     inline bool EventOut() const;
     inline void Trigger();
 
+// TODO: public need to be private
 public:
     int fd_;
     bool ev_in_;
@@ -46,6 +47,7 @@ inline void Event::Trigger()
 {
     (*callback_)(fd_, res_, arg_);
 }
+
 
 
 }   // namespace notifex

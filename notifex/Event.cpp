@@ -21,3 +21,14 @@ notifex::Event::Event(const int &fd, void (*callback)(int, int, void *))
     flags |= O_NONBLOCK;
     fcntl(fd_, F_SETFL, flags);
 }
+
+notifex::Event::Event(const Event &event)
+{
+    fd_ = event.fd_;
+    ev_in_ = event.ev_in_;
+    ev_out_ = event.ev_out_;
+    nonblock_ = event.nonblock_;
+    res_ = event.res_;
+    arg_ = event.arg_;
+    callback_ = event.callback_;
+}

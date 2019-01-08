@@ -5,7 +5,9 @@
 
 #include "Timer.h"
 
+#include <memory.h>
 #include <iostream>
+
 
 notifex::Timer::Timer(int sec, int msec, void (*callback)())
     :   interval_({sec, msec * 1000}),   // 秒和微秒
@@ -15,6 +17,16 @@ notifex::Timer::Timer(int sec, int msec, void (*callback)())
         debug_mode_(false)
 {
 
+}
+
+notifex::Timer::Timer(const notifex::Timer &timer)
+{
+    memcpy(&interval_, &timer.interval_, sizeof(timeval));
+    memcpy(&triggering_time_, &timer.triggering_time_, sizeof(timeval));
+    memcpy(&last_time_, &timer.last_time_, sizeof(timeval));
+    ev_once_ = timer.ev_once_;
+    callback_ = timer.callback_;
+    debug_mode_ = timer.debug_mode_;
 }
 
 void notifex::Timer::SetTriggeringTime(const int &sec, const int &msec)
@@ -59,3 +71,6 @@ void notifex::Timer::Trigger()
         triggering_time_.tv_sec += 1;
     }
 }
+
+
+

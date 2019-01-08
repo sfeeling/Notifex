@@ -46,6 +46,7 @@ void TimerEvent()
 int main()
 {
 	notifex::EventBase event_base;
+	event_base.Debug();
 	notifex::Event ev_in(0, ReadEvent);
 	notifex::Timer ev_timer(5, 0, TimerEvent);
 

@@ -31,7 +31,7 @@ private:
 };
 
 
-}
+}   // namespace notifex
 
 
 #endif // NOTIFEX_EPOLLER_H

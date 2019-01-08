@@ -20,20 +20,18 @@ namespace notifex
 EventBase::EventBase()
     :   debug_mode_(false),
         demultiplexer_(std::make_unique<Epoller>())
-
 {
-
 }
 
-void EventBase::AddEvent(Event &event)
+void EventBase::AddEvent(const Event &event)
 {
-    event_q_[event.fd_] = std::shared_ptr<Event>(&event);
+    event_q_[event.fd_] = std::make_shared<Event>(event);
     demultiplexer_->RegisterEvent(event);
 }
 
-void EventBase::AddTimer(Timer &timer)
+void EventBase::AddTimer(const Timer &timer)
 {
-    timer_q_.push(std::shared_ptr<Timer>(&timer));
+    timer_q_.push(std::make_shared<Timer>(timer));
     if (debug_mode_)
     {
         std::cout << "DEBUG AddTimer GetTime: " << timer_q_.top()->GetTriggeringTime() << std::endl;
@@ -41,11 +39,8 @@ void EventBase::AddTimer(Timer &timer)
 
 }
 
-void EventBase::Dispatch()
+void EventBase::SetUpTimer()
 {
-    const int EPOLL_LIST_SIZE = 10;
-    epoll_event epoll_list[EPOLL_LIST_SIZE];
-
     long tq_size = timer_q_.size();
     timeval time_stamp = { 0, 0 };
     gettimeofday(&time_stamp, nullptr);
@@ -61,7 +56,17 @@ void EventBase::Dispatch()
         }
         timer_q_.push(ptr);
     }
+}
 
+void EventBase::Dispatch()
+{
+    // 根据Timer的时间间隔设置触发时间戳
+    SetUpTimer();
+
+    const int EPOLL_LIST_SIZE = 10;
+    epoll_event epoll_list[EPOLL_LIST_SIZE];
+
+    timeval time_stamp = { 0, 0 };
     bool done = false;
     while (!done)
     {
@@ -69,13 +74,16 @@ void EventBase::Dispatch()
             done = true;
 
         // 如果没有计时器事件，timeout为-1让epoll永久阻塞
+        // TODO: 后续将更改timeout设置为可选
         int timeout = -1;
         gettimeofday(&time_stamp, nullptr);
         long long msec_stamp = time_stamp.tv_sec * 1000 + time_stamp.tv_usec / 1000;
+
         // 在epoll之前处理每个计时器事件（如果有的话）
+        // 一般来说，Timer事件的优先级比较高，需要随时进行处理
         if (!timer_q_.empty())
         {
-            while (msec_stamp >= timer_q_.top()->GetTriggeringTime())
+            while (!timer_q_.empty() && msec_stamp >= timer_q_.top()->GetTriggeringTime())
             {
                 std::shared_ptr<Timer> ptr = timer_q_.top();
                 timer_q_.pop();
@@ -85,34 +93,35 @@ void EventBase::Dispatch()
                 }
 
                 ptr->Trigger();
-                timer_q_.push(ptr);
+                // 如果Timer不是一次性的，则重新设置时间戳并添加到队列中
+                if (!ptr->Once())
+                {
+                    timer_q_.push(ptr);
+                }
+
             }
 
-            // 如果while循环处理正确，if语句应该可以省掉
-            // FIXME 处理timeout的类型转换
-            if (msec_stamp < timer_q_.top()->GetTriggeringTime())
+            // TODO 处理timeout的类型转换,用memcpy可能会出错
+            // TODO 这里是否要重新获取msec_stamp？
+            if (!timer_q_.empty() && msec_stamp < timer_q_.top()->GetTriggeringTime())
             {
                 long long temp = timer_q_.top()->GetTriggeringTime() - msec_stamp;
-                timeout = 0;
-                while (temp)
-                {
-                    ++timeout;
-                    --temp;
-                }
+                memcpy(&timeout, &temp, sizeof(timeout));
             }
         }
 
         if (debug_mode_)
             std::cout << "DEBUG timeout: " << timeout << std::endl;
-        // IO复用
+
+        // IO复用,即调用epoll
         std::vector<int> active_list = demultiplexer_->GetActiveList(timeout);
 
         // 处理每个计时器事件
-        if (true /*active_list.empty(),不管是否为空，应该都要处理*/ )
+        if (!timer_q_.empty())
         {
             gettimeofday(&time_stamp, nullptr);
             msec_stamp = time_stamp.tv_sec * 1000 + time_stamp.tv_usec / 1000;
-            while (msec_stamp >= timer_q_.top()->GetTriggeringTime())
+            while (!timer_q_.empty() && msec_stamp >= timer_q_.top()->GetTriggeringTime())
             {
                 std::shared_ptr<Timer> ptr = timer_q_.top();
                 timer_q_.pop();
@@ -122,10 +131,12 @@ void EventBase::Dispatch()
                 }
 
                 ptr->Trigger();
-                timer_q_.push(ptr);
+                if (!ptr->Once())
+                {
+                    timer_q_.push(ptr);
+                }
             }
         }
-
         // 处理每个事件
         for (auto fd : active_list)
         {
@@ -140,10 +151,7 @@ void EventBase::Dispatch()
     }
 }
 
-void EventBase::Debug()
-{
-    debug_mode_ = true;
-}
+
 
 
 }   // namespace notifex

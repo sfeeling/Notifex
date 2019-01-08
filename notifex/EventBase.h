@@ -18,6 +18,7 @@
 namespace notifex
 {
 
+
 class EventBase
 {
 
@@ -25,12 +26,18 @@ public:
     EventBase();
     ~EventBase() = default;
 
-    void AddEvent(Event &event);
-    void AddTimer(Timer &timer);
+    void AddEvent(const Event &event);
+    void AddTimer(const Timer &timer);
     //void AddSignal();
     void Dispatch();
 
-    void Debug();
+    inline void Debug()
+    {
+        debug_mode_ = true;
+    }
+
+private:
+    void SetUpTimer();
 
 private:
     // DEBUG模式
