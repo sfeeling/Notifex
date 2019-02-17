@@ -43,6 +43,9 @@ private:
     // DEBUG模式
     bool debug_mode_;
 
+    // 线程池
+    ThreadPool thread_pool_;
+
     // 事件队列
     std::unordered_map<int, std::shared_ptr<Event>> event_q_;
 

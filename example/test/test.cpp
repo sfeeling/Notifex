@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <iostream>
 #include "notifex.h"
+#include "ThreadPool.h"
 
 using namespace std;
 
@@ -43,31 +44,31 @@ void TimerEvent()
     cout << "Timer callback" << endl;
 }
 
+void ThreadPoolTest()
+{
+    cout << "Thread pool test" << endl;
+}
+
 int main()
 {
 	notifex::EventBase event_base;
 	event_base.Debug();
 	notifex::Event ev_in(0, ReadEvent);
 	notifex::Timer ev_timer(5, 0, TimerEvent);
+	ev_timer.SetRepeated();
 
-	/*
-	sockaddr_in serv_addr, cli_addr;
-	memset(&serv_addr, 0, sizeof(serv_addr));
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(7000);
-	inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
 
-	int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
-	bind(listen_fd, (sockaddr*)&serv_addr, sizeof(serv_addr));
-	listen(listen_fd, 5);
-
-	socklen_t cli_len = sizeof(cli_addr);
-	int fd = accept(listen_fd, (sockaddr*)&cli_addr, &cli_len);
-	notifex::Event ev_sock(fd, ReadEvent);
-	 */
 
 	event_base.AddEvent(ev_in);
 	event_base.AddTimer(ev_timer);
 	//event_base.AddEvent(ev_sock);
 	event_base.Dispatch();
+
+    notifex::ThreadPool threadPool(8);
+    for (int i = 0; i < 1000; ++i)
+    {
+        //threadPool.execute(ThreadPoolTest);
+        //cout << i << endl;
+    }
+
 }

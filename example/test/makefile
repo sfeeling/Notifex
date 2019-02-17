@@ -1,6 +1,5 @@
 test:test.cpp
-	g++ test.cpp -o test -lnotifex
-
+	g++ test.cpp -o test -lnotifex -pthread
 
 
 # 将生成的动态库文件复制到/usr/local/lib/
@@ -11,3 +10,9 @@ libnotifex:
 
 header:
 	cp ../../notifex/*.h ./
+
+# 运行test
+run:test test_file
+
+test_file:
+	./test

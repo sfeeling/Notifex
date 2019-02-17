@@ -19,6 +19,7 @@ namespace notifex
 
 EventBase::EventBase()
     :   debug_mode_(false),
+        thread_pool_(8),
         demultiplexer_(std::make_unique<Epoller>())
 {
 }
@@ -92,7 +93,9 @@ void EventBase::Dispatch()
                     std::cout << "Trigger before epoll: " << ptr->GetTriggeringTime() << std::endl;
                 }
 
-                ptr->Trigger();
+                // TODO: Test Thread Pool with Member Function
+                thread_pool_.execute(ptr->Trigger);
+                //ptr->Trigger();
                 // 如果Timer不是一次性的，则重新设置时间戳并添加到队列中
                 if (!ptr->Once())
                 {
@@ -130,7 +133,9 @@ void EventBase::Dispatch()
                     std::cout << "DEBUG Trigger after epoll: " << ptr->GetTriggeringTime() << std::endl;
                 }
 
-                ptr->Trigger();
+                // TODO: Test Thread Pool with Member Function
+                // ptr->Trigger();
+                thread_pool_.execute(ptr->Trigger);
                 if (!ptr->Once())
                 {
                     timer_q_.push(ptr);
@@ -146,7 +151,11 @@ void EventBase::Dispatch()
             }
 
             std::shared_ptr<Event> ev_ptr = event_q_[fd];
-            ev_ptr->Trigger();
+            // TODO: Test Thread Pool with Member Function
+            // ev_ptr->Trigger();
+            thread_pool_.execute(ev_ptr->Trigger);
+
+
         }
     }
 }
