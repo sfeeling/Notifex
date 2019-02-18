@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include "Epoller.h"
 #include "Event.h"
+#include "RIO.h"
 #include "ThreadPool.h"
 #include "Timer.h"
 

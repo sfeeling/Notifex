@@ -13,6 +13,8 @@
 #include <utility>
 #include <vector>
 
+#include <functional>
+
 namespace notifex
 {
 
@@ -94,8 +96,17 @@ void EventBase::Dispatch()
                 }
 
                 // TODO: Test Thread Pool with Member Function
-                thread_pool_.execute(ptr->Trigger);
-                //ptr->Trigger();
+                // 这里相当于function<void()> f = std::bind(&Timer::Trigger, ptr)
+                // f被传递给线程池，当绑定到非静态成员函数(Timer::Trigger)时，必须要有实例对其进行调用
+                // 即用于执行函数的是ptr所指向的实例,由于每个实例的内部参数不同，调用才得以实现
+                //thread_pool_.execute(std::bind(&Timer::Trigger, ptr));
+
+
+                ptr->Trigger();
+
+                // TODO: 如果要换用线程模式，必须对Timer实例上锁，否则repeated模式中任务未执行完的情况下，
+                // TODO： Timer又重新添加到队列中，则队列中Timer的触发时间仍未更新，
+                // TODO： 在之前的任务未结束之前，又多了几个同时刻的新任务，产生严重错误
                 // 如果Timer不是一次性的，则重新设置时间戳并添加到队列中
                 if (!ptr->Once())
                 {
@@ -134,8 +145,8 @@ void EventBase::Dispatch()
                 }
 
                 // TODO: Test Thread Pool with Member Function
-                // ptr->Trigger();
-                thread_pool_.execute(ptr->Trigger);
+                //thread_pool_.execute(std::bind(&Timer::Trigger, ptr));
+                ptr->Trigger();
                 if (!ptr->Once())
                 {
                     timer_q_.push(ptr);
@@ -152,9 +163,8 @@ void EventBase::Dispatch()
 
             std::shared_ptr<Event> ev_ptr = event_q_[fd];
             // TODO: Test Thread Pool with Member Function
-            // ev_ptr->Trigger();
-            thread_pool_.execute(ev_ptr->Trigger);
-
+            ev_ptr->Trigger();
+            //thread_pool_.execute(std::bind(&Event::Trigger, ev_ptr));
 
         }
     }

@@ -4,7 +4,9 @@
 #include <unistd.h>
 #include <iostream>
 #include "notifex.h"
-#include "ThreadPool.h"
+
+#include <functional>
+#include <memory>
 
 using namespace std;
 
@@ -44,13 +46,10 @@ void TimerEvent()
     cout << "Timer callback" << endl;
 }
 
-void ThreadPoolTest()
-{
-    cout << "Thread pool test" << endl;
-}
 
 int main()
 {
+
 	notifex::EventBase event_base;
 	event_base.Debug();
 	notifex::Event ev_in(0, ReadEvent);
@@ -64,11 +63,9 @@ int main()
 	//event_base.AddEvent(ev_sock);
 	event_base.Dispatch();
 
-    notifex::ThreadPool threadPool(8);
-    for (int i = 0; i < 1000; ++i)
-    {
-        //threadPool.execute(ThreadPoolTest);
-        //cout << i << endl;
-    }
+    // TODO 未定义的引用
+    //char buf[100];
+    //notifex::rio_readn(STDIN_FILENO, buf, 10);
+    //notifex::rio_writen(STDOUT_FILENO, buf, 20);
 
 }
