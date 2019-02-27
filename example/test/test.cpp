@@ -3,10 +3,10 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <iostream>
+
 #include "notifex.h"
 
-#include <functional>
-#include <memory>
+#include <glog/logging.h>
 
 using namespace std;
 
@@ -41,19 +41,27 @@ void ReadEvent(int fd, int res, void *arg)
     delete[] buf;
 }
 
+
 void TimerEvent()
 {
     cout << "Timer callback" << endl;
 }
 
 
-int main()
+int main(int argc, char *argv[])
 {
 
+    google::InitGoogleLogging(argv[0]);
+
+    // 输出到屏幕
+    FLAGS_logtostderr = 0;
+
+
+
 	notifex::EventBase event_base;
-	event_base.Debug();
+	//event_base.Debug();
 	notifex::Event ev_in(0, ReadEvent);
-	notifex::Timer ev_timer(5, 0, TimerEvent);
+	notifex::Timer ev_timer(3, 100, TimerEvent);
 	ev_timer.SetRepeated();
 
 
@@ -63,9 +71,6 @@ int main()
 	//event_base.AddEvent(ev_sock);
 	event_base.Dispatch();
 
-    // TODO 未定义的引用
-    //char buf[100];
-    //notifex::rio_readn(STDIN_FILENO, buf, 10);
-    //notifex::rio_writen(STDOUT_FILENO, buf, 20);
+
 
 }

@@ -8,20 +8,21 @@
 #include <sys/epoll.h>
 #include <sys/time.h>
 #include <unistd.h>
+
+#include <functional>
 #include <memory>
 #include <iostream>
 #include <utility>
 #include <vector>
 
-#include <functional>
+
+#include <glog/logging.h>
 
 namespace notifex
 {
 
-
 EventBase::EventBase()
-    :   debug_mode_(false),
-        thread_pool_(8),
+    :   thread_pool_(8),
         demultiplexer_(std::make_unique<Epoller>())
 {
 }
@@ -35,14 +36,11 @@ void EventBase::AddEvent(const Event &event)
 void EventBase::AddTimer(const Timer &timer)
 {
     timer_q_.push(std::make_shared<Timer>(timer));
-    if (debug_mode_)
-    {
-        std::cout << "DEBUG AddTimer GetTime: " << timer_q_.top()->GetTriggeringTime() << std::endl;
-    }
+    LOG(INFO) << "AddTimer GetTime: " << timer_q_.top()->GetTriggeringTime();
 
 }
 
-void EventBase::SetUpTimer()
+void EventBase::StartUpTimer()
 {
     long tq_size = timer_q_.size();
     timeval time_stamp = { 0, 0 };
@@ -53,10 +51,7 @@ void EventBase::SetUpTimer()
         std::shared_ptr<Timer> ptr = timer_q_.top();
         timer_q_.pop();
         ptr->SetTriggeringTime(&time_stamp);
-        if (debug_mode_)
-        {
-            std::cout << "DEBUG Initialize Timer: " << ptr->GetTriggeringTime() << std::endl;
-        }
+        LOG(INFO) << "Initialize Timer: " << ptr->GetTriggeringTime();
         timer_q_.push(ptr);
     }
 }
@@ -64,7 +59,7 @@ void EventBase::SetUpTimer()
 void EventBase::Dispatch()
 {
     // 根据Timer的时间间隔设置触发时间戳
-    SetUpTimer();
+    StartUpTimer();
 
     const int EPOLL_LIST_SIZE = 10;
     epoll_event epoll_list[EPOLL_LIST_SIZE];
@@ -88,29 +83,28 @@ void EventBase::Dispatch()
         {
             while (!timer_q_.empty() && msec_stamp >= timer_q_.top()->GetTriggeringTime())
             {
-                std::shared_ptr<Timer> ptr = timer_q_.top();
+                std::shared_ptr<Timer> tm_ptr = timer_q_.top();
                 timer_q_.pop();
-                if (debug_mode_)
-                {
-                    std::cout << "Trigger before epoll: " << ptr->GetTriggeringTime() << std::endl;
-                }
+
+                LOG(INFO) << "Trigger before epoll: " << tm_ptr->GetTriggeringTime();
+
 
                 // TODO: Test Thread Pool with Member Function
-                // 这里相当于function<void()> f = std::bind(&Timer::Trigger, ptr)
+                // 这里相当于function<void()> f = std::bind(&Timer::Trigger, tm_ptr)
                 // f被传递给线程池，当绑定到非静态成员函数(Timer::Trigger)时，必须要有实例对其进行调用
                 // 即用于执行函数的是ptr所指向的实例,由于每个实例的内部参数不同，调用才得以实现
-                //thread_pool_.execute(std::bind(&Timer::Trigger, ptr));
-
-
-                ptr->Trigger();
+                thread_pool_.execute(std::bind(&Timer::Trigger, tm_ptr));
+                //tm_ptr->Trigger();
 
                 // TODO: 如果要换用线程模式，必须对Timer实例上锁，否则repeated模式中任务未执行完的情况下，
-                // TODO： Timer又重新添加到队列中，则队列中Timer的触发时间仍未更新，
-                // TODO： 在之前的任务未结束之前，又多了几个同时刻的新任务，产生严重错误
+                // TODO: Timer又重新添加到队列中，则队列中Timer的触发时间仍未更新，
+                // TODO: 在之前的任务未结束之前，又多了几个同时刻的新任务，产生严重错误
                 // 如果Timer不是一次性的，则重新设置时间戳并添加到队列中
-                if (!ptr->Once())
+                if (!tm_ptr->Once())
                 {
-                    timer_q_.push(ptr);
+                    // 应该在添加到队列之前设置下次触发时间
+                    tm_ptr->SetNextTime();
+                    timer_q_.push(tm_ptr);
                 }
 
             }
@@ -124,8 +118,7 @@ void EventBase::Dispatch()
             }
         }
 
-        if (debug_mode_)
-            std::cout << "DEBUG timeout: " << timeout << std::endl;
+        LOG(INFO) << "Timeout: " << timeout;
 
         // IO复用,即调用epoll
         std::vector<int> active_list = demultiplexer_->GetActiveList(timeout);
@@ -137,29 +130,27 @@ void EventBase::Dispatch()
             msec_stamp = time_stamp.tv_sec * 1000 + time_stamp.tv_usec / 1000;
             while (!timer_q_.empty() && msec_stamp >= timer_q_.top()->GetTriggeringTime())
             {
-                std::shared_ptr<Timer> ptr = timer_q_.top();
+                std::shared_ptr<Timer> tm_ptr = timer_q_.top();
                 timer_q_.pop();
-                if (debug_mode_)
-                {
-                    std::cout << "DEBUG Trigger after epoll: " << ptr->GetTriggeringTime() << std::endl;
-                }
+
+                LOG(INFO) << "DEBUG Trigger after epoll: " << tm_ptr->GetTriggeringTime();
+
 
                 // TODO: Test Thread Pool with Member Function
-                //thread_pool_.execute(std::bind(&Timer::Trigger, ptr));
-                ptr->Trigger();
-                if (!ptr->Once())
+                thread_pool_.execute(std::bind(&Timer::Trigger, tm_ptr));
+                // tm_ptr->Trigger();
+                if (!tm_ptr->Once())
                 {
-                    timer_q_.push(ptr);
+                    tm_ptr->SetNextTime();
+                    timer_q_.push(tm_ptr);
                 }
             }
         }
         // 处理每个事件
         for (auto fd : active_list)
         {
-            if (debug_mode_)
-            {
-                std::cout << "DEBUG fd from active_list: " << fd << std::endl;
-            }
+
+            LOG(INFO) << "fd from active_list: " << fd;
 
             std::shared_ptr<Event> ev_ptr = event_q_[fd];
             // TODO: Test Thread Pool with Member Function

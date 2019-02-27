@@ -15,6 +15,7 @@
 #include "RIO.h"
 #include "ThreadPool.h"
 #include "Timer.h"
+#include "Util.h"
 
 namespace notifex
 {
@@ -32,18 +33,10 @@ public:
     //void AddSignal();
     void Dispatch();
 
-    inline void Debug()
-    {
-        debug_mode_ = true;
-    }
+private:
+    void StartUpTimer();
 
 private:
-    void SetUpTimer();
-
-private:
-    // DEBUG模式
-    bool debug_mode_;
-
     // 线程池
     ThreadPool thread_pool_;
 

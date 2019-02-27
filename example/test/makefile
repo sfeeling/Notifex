@@ -1,5 +1,5 @@
 test:test.cpp
-	g++ test.cpp -o test -lnotifex -pthread
+	g++ test.cpp -o test -lnotifex -pthread -lglog
 
 
 # 将生成的动态库文件复制到/usr/local/lib/
