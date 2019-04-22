@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
     google::InitGoogleLogging(argv[0]);
 
     // 输出到屏幕
-    FLAGS_logtostderr = 0;
+    FLAGS_logtostderr = 1;
 
 
 
@@ -62,12 +62,14 @@ int main(int argc, char *argv[])
 	//event_base.Debug();
 	notifex::Event ev_in(0, ReadEvent);
 	notifex::Timer ev_timer(3, 100, TimerEvent);
+	notifex::TCPListener listener(9898, ReadEvent);
 	ev_timer.SetRepeated();
 
 
 
 	event_base.AddEvent(ev_in);
 	event_base.AddTimer(ev_timer);
+	event_base.AddListener(listener);
 	//event_base.AddEvent(ev_sock);
 	event_base.Dispatch();
 

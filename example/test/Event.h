@@ -5,6 +5,9 @@
 #ifndef NOTIFEX_EVENT_H
 #define NOTIFEX_EVENT_H
 
+#include <thread>
+#include <iostream>
+
 namespace notifex
 {
 

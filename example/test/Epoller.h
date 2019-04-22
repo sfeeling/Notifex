@@ -19,6 +19,7 @@ public:
 
     void RegisterEvent(const Event &) override;
     void RemoveEvent(const int &fd) override;
+    void RegisterListener(const TCPListener &) override;
 
     // Demultiplex
     std::vector<int> GetActiveList(const int &msec) override;

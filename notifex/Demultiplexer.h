@@ -7,6 +7,7 @@
 
 #include <vector>
 #include "Event.h"
+#include "TCPListener.h"
 
 namespace notifex
 {
@@ -20,6 +21,7 @@ public:
 
     virtual void RegisterEvent(const Event &event) = 0;
     virtual void RemoveEvent(const int &fd) = 0;
+    virtual void RegisterListener(const TCPListener &listener) = 0;
 
     // Demultiplex
     virtual std::vector<int> GetActiveList(const int &msec) = 0;

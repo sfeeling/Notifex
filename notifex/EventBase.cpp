@@ -15,7 +15,6 @@
 #include <utility>
 #include <vector>
 
-
 #include <glog/logging.h>
 
 namespace notifex
@@ -23,14 +22,23 @@ namespace notifex
 
 EventBase::EventBase()
     :   thread_pool_(8),
-        demultiplexer_(std::make_unique<Epoller>())
+        demultiplexer_(std::make_unique<Epoller>()),
+        listener_(nullptr)
 {
 }
 
 void EventBase::AddEvent(const Event &event)
 {
-    event_q_[event.fd_] = std::make_shared<Event>(event);
+    event_hash_[event.fd_] = std::make_shared<Event>(event);
     demultiplexer_->RegisterEvent(event);
+}
+
+void EventBase::AddEvent(const std::shared_ptr<Event> &ev_ptr)
+{
+    // TODO: 暂未测试
+    event_hash_[ev_ptr->fd_] = ev_ptr;
+    demultiplexer_->RegisterEvent(*ev_ptr);
+    LOG(WARNING) << "ADDEVENT";
 }
 
 void EventBase::AddTimer(const Timer &timer)
@@ -38,6 +46,13 @@ void EventBase::AddTimer(const Timer &timer)
     timer_q_.push(std::make_shared<Timer>(timer));
     LOG(INFO) << "AddTimer GetTime: " << timer_q_.top()->GetTriggeringTime();
 
+}
+
+void EventBase::AddListener(const TCPListener &listener)
+{
+    listener_ = std::make_shared<TCPListener>(listener);
+    demultiplexer_->RegisterListener(listener);
+    LOG(INFO) << "AddTCPListener" << "listen fd:" << listener_->GetListenFd();
 }
 
 void EventBase::StartUpTimer()
@@ -68,7 +83,7 @@ void EventBase::Dispatch()
     bool done = false;
     while (!done)
     {
-        if (event_q_.empty() && timer_q_.empty())
+        if (event_hash_.empty() && timer_q_.empty())
             done = true;
 
         // 如果没有计时器事件，timeout为-1让epoll永久阻塞
@@ -103,6 +118,8 @@ void EventBase::Dispatch()
                 if (!tm_ptr->Once())
                 {
                     // 应该在添加到队列之前设置下次触发时间
+                    // 之前把设置触发时间的逻辑放在了Timer内部，回调之后，在未执行完回调时，
+                    // 由于是多线程，这里可能已经把未更新的Timer push到队列中，导致重复运行
                     tm_ptr->SetNextTime();
                     timer_q_.push(tm_ptr);
                 }
@@ -146,18 +163,36 @@ void EventBase::Dispatch()
                 }
             }
         }
+
+        ProcessEvents(active_list);
         // 处理每个事件
-        for (auto fd : active_list)
+
+    }
+}
+
+void EventBase::ProcessEvents(const std::vector<int> &active_list)
+{
+    //
+    for (auto fd : active_list)
+    {
+
+        LOG(INFO) << "fd from active_list: " << fd;
+        if (listener_ && listener_->GetListenFd() == fd)
         {
-
-            LOG(INFO) << "fd from active_list: " << fd;
-
-            std::shared_ptr<Event> ev_ptr = event_q_[fd];
-            // TODO: Test Thread Pool with Member Function
-            ev_ptr->Trigger();
-            //thread_pool_.execute(std::bind(&Event::Trigger, ev_ptr));
-
+            // TODO: 创建连接事件
+            int con_fd = listener_->Accept();
+            std::shared_ptr<Event> ev_ptr = std::make_shared<Event>(con_fd, listener_->callback_);
+            AddEvent(ev_ptr);
+            LOG(WARNING) << "创建连接: " << fd;
         }
+        else
+        {
+            std::shared_ptr<Event> ev_ptr = event_hash_[fd];
+            // ev_ptr->Trigger();
+            thread_pool_.execute(std::bind(&Event::Trigger, ev_ptr));
+        }
+
+
     }
 }
 

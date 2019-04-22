@@ -10,6 +10,7 @@
 void notifex::Epoller::RegisterEvent(const Event &event)
 {
     epoll_event ep_event = { 0, { nullptr } };
+    // TODO: 考虑写事件
     if (event.EventIn())
         ep_event.events |= EPOLLIN;
     if (event.EventOut())
@@ -53,5 +54,20 @@ std::vector<int> notifex::Epoller::GetActiveList(const int &msec)
 notifex::Epoller::Epoller()
     :   ep_fd_(epoll_create1(0))
 {
+
+}
+
+void notifex::Epoller::RegisterListener(const notifex::TCPListener &listener)
+{
+    epoll_event ep_event = { 0, { nullptr } };
+    ep_event.events |= EPOLLIN;
+
+    // TODO: 应该封装listen_fd_
+    ep_event.data.fd = listener.listen_fd_;
+    if (epoll_ctl(ep_fd_, EPOLL_CTL_ADD, listener.listen_fd_, &ep_event) == -1)
+    {
+        std::cerr << "epoll_ctl_add error" << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
 }
