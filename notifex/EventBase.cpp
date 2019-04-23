@@ -164,13 +164,13 @@ void EventBase::Dispatch()
             }
         }
 
-        ProcessEvents(active_list);
+        HandleEvents(active_list);
         // 处理每个事件
 
     }
 }
 
-void EventBase::ProcessEvents(const std::vector<int> &active_list)
+void EventBase::HandleEvents(const std::vector<int> &active_list)
 {
     //
     for (auto fd : active_list)
