@@ -5,7 +5,8 @@
 #include "EventBase.h"
 
 #include <memory.h>
-#include <sys/epoll.h>
+#include <signal.h>
+#include <sys/eventfd.h>
 #include <sys/time.h>
 #include <unistd.h>
 
@@ -15,16 +16,74 @@
 #include <utility>
 #include <vector>
 
+#include "Channel.h"
+#include "Demultiplexer.h"
+
 #include <glog/logging.h>
 
-namespace notifex
+using namespace notifex;
+
+namespace
 {
+
+const int kPollTimeMs = 10000;
+
+int CreateEventFd()
+{
+    int event_fd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    if (event_fd < 0)
+    {
+        LOG(ERROR) << "Failed in event fd";
+        abort();
+    }
+    return event_fd;
+}
+
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+class IgnoreSigPipe
+{
+public:
+    IgnoreSigPipe()
+    {
+        ::signal(SIGPIPE, SIG_IGN);
+        // LOG_TRACE << "Ignore SIGPIPE";
+    }
+};
+#pragma GCC diagnostic error "-Wold-style-cast"
+
+IgnoreSigPipe initObj;
+
+}   // namespace
+
+
 
 EventBase::EventBase()
     :   thread_pool_(8),
-        demultiplexer_(std::make_unique<Epoller>()),
-        listener_(nullptr)
+        // FIXME: demultiplexer_(std::make_unique<Epoller>()),
+        demultiplexer_(Demultiplexer::NewDefaultDemultiplexer(this)),
+        listener_(nullptr),
+        dispatching_(false),
+        done_(false),
+        event_handling_(false),
+        calling_pending_functors_(false),
+        iteration_(0),
+        wakeup_fd_(CreateEventFd()),
+        wakeup_channel_(new Channel(this, wakeup_fd_)),
+        current_active_channel_(nullptr)
 {
+    LOG(INFO) << "EventBase Created " << this;
+    // FIXME: 参数绑定显示错误
+    wakeup_channel_->SetReadCallback(
+            std::bind(&EventBase::HandleRead, this));
+    wakeup_channel_->EnableReading();
+}
+
+EventBase::~EventBase()
+{
+    LOG(INFO) << "EventBase::~EventBase";
+    wakeup_channel_->DisableAll();
+    wakeup_channel_->Remove();
+    ::close(wakeup_fd_);
 }
 
 void EventBase::AddEvent(const Event &event)
@@ -196,7 +255,96 @@ void EventBase::HandleEvents(const std::vector<int> &active_list)
     }
 }
 
+void EventBase::Quit()
+{
+    done_ = true;
+}
 
+void EventBase::Run(EventBase::Functor cb)
+{
 
+}
 
-}   // namespace notifex
+void EventBase::Wakeup()
+{
+
+}
+
+void EventBase::UpdateChannel(Channel *channel)
+{
+    demultiplexer_->UpdateChannel(channel);
+}
+
+void EventBase::RemoveChannel(Channel *channel)
+{
+    if (event_handling_)
+    {
+        // FIXME: assert(current_active_channel_ == channel ||
+        //              std::find(active_channels_.begin(), active_channels_.end(), channel) == active_channels_.end());
+        // 在活动的通道中应该找不到该通道
+        assert(current_active_channel_ == channel);
+    }
+    demultiplexer_->RemoveChannel(channel);
+}
+
+bool EventBase::HasChannel(Channel *channel)
+{
+    return demultiplexer_->HasChannel(channel);
+}
+
+void EventBase::HandleRead()
+{
+    uint64_t one = 1;
+    ssize_t n = ::read(wakeup_fd_, &one, sizeof(one));
+    if (n != sizeof(one))
+    {
+        LOG(ERROR) << "EventLoop::handleRead() reads " << n << " bytes instead of 8";
+    }
+}
+
+void EventBase::DoPendingFunctors()
+{
+
+}
+
+void EventBase::NewDispatch()
+{
+    assert(!dispatching_);
+    dispatching_ = true;
+    done_ = false;
+    LOG(INFO) << "EventBase " << " start dispatching";
+
+    while (!done_)
+    {
+        active_channels_.clear();
+        demultiplexer_->Poll(kPollTimeMs, &active_channels_);
+        ++iteration_;
+        // TODO: TEST
+        if (false)
+            PrintActiveChannels();
+        // TODO sort channel by priority
+        event_handling_ = true;
+        for (auto channel : active_channels_)
+        {
+            current_active_channel_ = channel;
+            // TODO: 多线程 thread_pool_.execute(std::bind(&Channel::HandleEvent, current_active_channel_));
+            current_active_channel_->HandleEvent();
+        }
+        current_active_channel_ = nullptr;  // NULL
+        event_handling_ = false;
+        // 这里没搞懂
+        DoPendingFunctors();
+    }
+
+    LOG(INFO) << "EventBase " << " stop dispatching";
+    dispatching_ = false;
+}
+
+void EventBase::PrintActiveChannels() const
+{
+    for (const auto channel : active_channels_)
+    {
+        LOG(INFO) << "{" << channel->ReventsToString() << "} ";
+    }
+}
+

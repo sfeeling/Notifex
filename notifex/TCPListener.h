@@ -7,12 +7,21 @@
 
 #include <netinet/in.h>
 
+#include <functional>
+
+#include <Channel.h>
+#include <Socket.h>
+
 namespace notifex
 {
+
+class EventBase;
 
 class TCPListener
 {
 public:
+    typedef std::function<void (int sock_fd)> NewConnectionCallback;
+
     explicit TCPListener(uint16_t port, void (*callback)(int, int, void *));
     ~TCPListener() = default;
 
