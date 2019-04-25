@@ -25,14 +25,15 @@ Channel::Channel(EventBase *event_base, int fd)
         revents_(0),
         index_(-1),
         event_handling_(false),
-        added_to_base_(false)
+        added_to_base_(false),
+        added_to_pool_(false)
 {
 
 }
 
 Channel::~Channel()
 {
-    assert(!event_handling_);
+    // FIXME: 事件还在运行就被析构 assert(!event_handling_);
     assert(!added_to_base_);
     assert(!event_base_->HasChannel(this));
 }
@@ -94,6 +95,7 @@ void Channel::HandleEventSafely()
     if (revents_ & (POLLIN | POLLPRI | POLLRDHUP))
     {
         if (read_callback_) read_callback_();
+
     }
     if (revents_ & POLLOUT)
     {
@@ -118,3 +120,10 @@ std::string Channel::ReventsToString() const
 {
     return EventsToString(fd_, revents_);
 }
+
+void Channel::Tie(const std::shared_ptr<void> &obj_ptr)
+{
+    tie_ptr_ = obj_ptr;
+    tied_ = true;
+}
+

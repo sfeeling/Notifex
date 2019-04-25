@@ -34,6 +34,7 @@ public:
                         data->tasks_.pop();
                         lk.unlock();
                         current();
+                        LOG(INFO) << "线程ID:" << std::this_thread::get_id();
                         lk.lock();
                     }
                     else if (data->is_shutdown_)

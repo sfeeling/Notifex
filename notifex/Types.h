@@ -52,4 +52,4 @@ inline To down_cast(From* f)                     // so we only accept pointers
 
 }  // namespace notifex
 
-#endif //NOTIFEX_TYPES_H
+#endif // NOTIFEX_TYPES_H

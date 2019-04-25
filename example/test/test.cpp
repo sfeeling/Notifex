@@ -2,50 +2,24 @@
 #include <memory.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <string>
 #include <iostream>
 
 #include "notifex.h"
+#include "TCPServer.h"
+#include "Socket.h"
 
 #include <glog/logging.h>
 
 using namespace std;
-
-void ReadEvent(int fd, int res, void *arg)
-{
-    const int READ_SIZE = 32;
-    char *buf = new char[READ_SIZE];
-    int n;
-    bool done = false;
-    while (!done)
-    {
-        n = read(fd, buf, READ_SIZE);
-        if (n > 0)
-        {
-            cout << "stdin event" << endl;
-            write(STDOUT_FILENO, buf, n);
-        }
-        else if (n == 0)
-        {
-            cout << "fd closed: " << fd << endl;
-            done = true;
-        }
-        else
-        {
-            done = true;
-            close(fd);
-        }
-    }
-
-    cout << "read with empty buf: " << read(fd, buf, 0) << endl;
-
-    delete[] buf;
-}
+using namespace notifex;
 
 
 void TimerEvent()
 {
     cout << "Timer callback" << endl;
 }
+
 
 
 int main(int argc, char *argv[])
@@ -56,23 +30,26 @@ int main(int argc, char *argv[])
     // 输出到屏幕
     FLAGS_logtostderr = 1;
 
+    sockaddr_in serv_addr;
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = ::htonl(INADDR_ANY);
+    serv_addr.sin_port = ::htons(9898);
 
-
-	notifex::EventBase event_base;
-	//event_base.Debug();
-	notifex::Event ev_in(0, ReadEvent);
-	//notifex::Timer ev_timer(3, 100, TimerEvent);
-	notifex::TCPListener listener(9898, ReadEvent);
-	//ev_timer.SetRepeated();
-
-
-
-	event_base.AddEvent(ev_in);
-	//event_base.AddTimer(ev_timer);
-	event_base.AddListener(listener);
-	//event_base.AddEvent(ev_sock);
-	event_base.Dispatch();
-
-
-
+    EventBase event_base;
+    TCPServer server(&event_base, (sockaddr *)&serv_addr,
+                     "EchoServer");
+    server.SetConnectionCallback([](const TCPConnectionPtr &conn)
+                                 {
+                                     LOG(INFO) << "Echo服务器连接已"
+                                                  << (conn->Connected() ? "开启" : "断开");
+                                 });
+    server.SetMessageCallback([](const TCPConnectionPtr &conn,
+                                 Buffer *buf)
+                              {
+                                  string msg(buf->retrieveAllAsString());
+                                  cout << msg;
+                              });
+    server.Start();
+    event_base.NewDispatch();
 }

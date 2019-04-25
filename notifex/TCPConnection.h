@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 
+#include "Buffer.h"
 #include "Callbacks.h"
 
 namespace notifex
@@ -30,8 +31,9 @@ public:
     bool Disconnected() const { return state_ == kDisconnected; }
 
     void Send(std::string &&message);
-    // void send(const void* message, int len);
-    // void send(const StringPiece& message);
+    void Send(const void* message, int len);
+    void Send(const StringPiece& message);
+    void Send(Buffer *buf);
     void Shutdown();
     void ForceClose();
 
@@ -73,8 +75,8 @@ private:
     void HandleError();
 
     void SendInBase(std::string &&message);
-    // void sendInLoop(const StringPiece& message);
-    // void sendInLoop(const void* message, size_t len);
+    void SendInBase(const StringPiece &message);
+    void SendInBase(const void* message, size_t len);
     void ShutdownInBase();
     void ForceCloseInBase();
     void SetState(ConnState state) { state_ = state; }
@@ -88,23 +90,23 @@ private:
     bool reading_;
 
     std::unique_ptr<Socket> socket_;
-    // FIXME: std::unique_ptr<Channel> channel_;
-
+    std::unique_ptr<Channel> channel_;
     // 考虑要不要保存端点信息Address
 
     ConnectionCallback connection_callback_;
     MessageCallback message_callback_;
     WriteCompleteCallback write_complete_callback_;
     CloseCallback close_callback_;
+    HighWaterMarkCallback high_water_mark_callback_;
+    size_t high_water_mark_;
 
-
+    Buffer input_buffer_;
+    Buffer output_buffer_;
 };
 
 typedef std::shared_ptr<TCPConnection> TCPConnectionPtr;
 
 }   // namespace notifex
-
-
 
 
 #endif //NOTIFEX_TCPCONNECTION_H

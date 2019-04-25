@@ -9,8 +9,8 @@
 
 #include <functional>
 
-#include <Channel.h>
-#include <Socket.h>
+#include "Channel.h"
+#include "Socket.h"
 
 namespace notifex
 {
@@ -23,7 +23,15 @@ public:
     typedef std::function<void (int sock_fd)> NewConnectionCallback;
 
     explicit TCPListener(uint16_t port, void (*callback)(int, int, void *));
-    ~TCPListener() = default;
+
+    explicit TCPListener(EventBase *event_base, const sockaddr *serv_addr);
+    ~TCPListener();
+
+    void SetNewConnectionCallback(const NewConnectionCallback &cb)
+    { new_connection_callback_ = cb; }
+
+    bool Listenning() const { return listenning_; }
+    void Listen();
 
     inline const int GetListenFd()
     {
@@ -45,6 +53,15 @@ public:
 public:
     void (*callback_)(int fd, int res, void *arg);   // 回调函数，事件触发时被调用
 
+private:
+    void HandleRead();
+
+    EventBase *event_base_;
+    Socket accept_socket_;
+    Channel accept_channel_;
+    NewConnectionCallback new_connection_callback_;
+    bool listenning_;
+    int idle_fd_;
 
 };
 

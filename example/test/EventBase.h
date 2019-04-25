@@ -10,8 +10,10 @@
 #include <ctime>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <queue>
 #include <unordered_map>
+#include <vector>
 
 
 #include "Callbacks.h"
@@ -51,7 +53,8 @@ public:
 
     int64_t Iteration() const { return iteration_; }
 
-    void Run(Functor cb);
+    //void RunInBase(Functor cb);
+    //void QueueInBase(Functor cb);
 
     void Wakeup();
     void UpdateChannel(Channel *channel);
@@ -60,6 +63,8 @@ public:
 
     bool EventHandling() const { return event_handling_; }
 
+    ThreadPool *GetThreadPool() { return &thread_pool_; };
+
 private:
     void StartUpTimer();
     void HandleEvents(const std::vector<int> &active_list);
@@ -67,6 +72,8 @@ private:
 private:
     void HandleRead();
     void DoPendingFunctors();
+
+    void PrintActiveChannels() const;
 
     // 线程池
     ThreadPool thread_pool_;
@@ -94,6 +101,7 @@ private:
     bool dispatching_;
     std::atomic<bool> done_;
     bool event_handling_;
+
     bool calling_pending_functors_;
     int64_t iteration_;
     // 复用器
@@ -105,6 +113,17 @@ private:
     ChannelList active_channels_;
     Channel *current_active_channel_;
 
+#if defined(__clang__) && (!defined(SWIG))
+#define THREAD_ANNOTATION_ATTRIBUTE__(x)   __attribute__((x))
+#else
+#define THREAD_ANNOTATION_ATTRIBUTE__(x)   // no-op
+#endif
+
+#define GUARDED_BY(x) \
+    THREAD_ANNOTATION_ATTRIBUTE__(guarded_by(x))
+
+    mutable std::mutex mutex_;
+    std::vector<Functor> pending_functors_ GUARDED_BY(mutex_);
 };
 
 

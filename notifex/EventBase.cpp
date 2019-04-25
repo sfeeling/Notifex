@@ -12,6 +12,7 @@
 
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <iostream>
 #include <utility>
 #include <vector>
@@ -260,10 +261,16 @@ void EventBase::Quit()
     done_ = true;
 }
 
-void EventBase::Run(EventBase::Functor cb)
-{
+//void EventBase::RunInBase(EventBase::Functor cb)
+//{
+//    cb();
+//}
 
-}
+//void EventBase::QueueInBase(EventBase::Functor cb)
+//{
+//    std::lock_guard<std::mutex> lck(mutex_);
+//    pending_functors_.push_back(std::move(cb));
+//}
 
 void EventBase::Wakeup()
 {
@@ -304,7 +311,17 @@ void EventBase::HandleRead()
 
 void EventBase::DoPendingFunctors()
 {
+    std::vector<Functor> functors;
+    calling_pending_functors_ = true;
 
+    {
+        std::lock_guard<std::mutex> lck(mutex_);
+        functors.swap(pending_functors_);
+    }
+
+    for (const Functor &functor : functors)
+        functor();
+    calling_pending_functors_ = false;
 }
 
 void EventBase::NewDispatch()
@@ -323,17 +340,18 @@ void EventBase::NewDispatch()
         if (false)
             PrintActiveChannels();
         // TODO sort channel by priority
-        event_handling_ = true;
+        // FIXME: 考虑要不要把执行顺序带上
+        // event_handling_ = true;
         for (auto channel : active_channels_)
         {
             current_active_channel_ = channel;
-            // TODO: 多线程 thread_pool_.execute(std::bind(&Channel::HandleEvent, current_active_channel_));
+            // thread_pool_.execute(std::bind(&Channel::HandleEvent, current_active_channel_));
             current_active_channel_->HandleEvent();
         }
         current_active_channel_ = nullptr;  // NULL
         event_handling_ = false;
         // 这里没搞懂
-        DoPendingFunctors();
+        // FIXME: DoPendingFunctors();
     }
 
     LOG(INFO) << "EventBase " << " stop dispatching";
@@ -347,4 +365,6 @@ void EventBase::PrintActiveChannels() const
         LOG(INFO) << "{" << channel->ReventsToString() << "} ";
     }
 }
+
+
 

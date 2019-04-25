@@ -8,6 +8,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <glog/logging.h>
 
 
 namespace notifex
@@ -45,6 +46,8 @@ public:
     int Events() const { return events_; }
     void SetRevents(int revents) { revents_ = revents; }
 
+    void Tie(const std::shared_ptr<void> &);
+
     bool IsNoneEvent() const { return  events_ == kNoneEvent; }
 
     void EnableReading() { events_ |= kReadEvent; Update(); }
@@ -54,6 +57,9 @@ public:
     void DisableAll() { events_ = kNoneEvent; Update(); }
     bool IsWriting() const { return events_ & kWriteEvent; }
     bool IsReading() const { return events_ & kReadEvent; }
+
+    void AddToPool() { added_to_pool_ = true; }
+    bool IsInPool() const { return added_to_pool_; }
 
     int Index() { return index_; }
     void SetIndex(int index) { index_ = index; }
@@ -81,8 +87,11 @@ private:
     int revents_;
     int index_; // 被Poller使用
 
+    std::weak_ptr<void> tie_ptr_;
+    bool tied_;
     bool event_handling_;
     bool added_to_base_;
+    bool added_to_pool_;
 
     EventCallback read_callback_;
     EventCallback write_callback_;

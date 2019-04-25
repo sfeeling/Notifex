@@ -52,6 +52,7 @@ typedef std::shared_ptr<TCPConnection> TCPConnectionPtr;
 typedef std::function<void (const TCPConnectionPtr&)> ConnectionCallback;
 typedef std::function<void (const TCPConnectionPtr&)> CloseCallback;
 typedef std::function<void (const TCPConnectionPtr&)> WriteCompleteCallback;
+typedef std::function<void (const TCPConnectionPtr&, size_t)> HighWaterMarkCallback;
 
 typedef std::function<void (const TCPConnectionPtr&,
                             Buffer*)> MessageCallback;

@@ -25,9 +25,21 @@ public:
     void Listen();
     int Accept(sockaddr *cli_addr);
 
+    void ShutdownWrite();
+    static void ShutdownWrite(int sock_fd);
+
     void SetReuseAddr(bool on);
 
-    void SetNonBlock(int sock_fd);
+    static void SetNonBlockAndCloseOnExec(int sock_fd);
+
+    static int CreateNonblockingOrDie(sa_family_t family);
+
+    static ssize_t Read(int sockfd, void *buf, size_t count);
+    static ssize_t Readv(int sockfd, const struct iovec *iov, int iovcnt);
+    static ssize_t Write(int sockfd, const void *buf, size_t count);
+
+    static int GetSocketError(int sock_fd);
+
 
 private:
     const int sock_fd_;
