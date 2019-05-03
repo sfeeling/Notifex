@@ -16,3 +16,6 @@ run:test test_file
 
 test_file:
 	./test
+
+http:http.cpp poem.html
+	g++ http.cpp -o http -lnotifex -pthread -lglog

@@ -53,6 +53,7 @@ public:
 protected:
     // TODO: 后续和unordered_map对比
     typedef std::map<int, Channel*> ChannelMap;
+    // FIXME: 需要原子操作
     ChannelMap channels_;
 
 private:

@@ -11,6 +11,7 @@
 
 #include "Channel.h"
 #include "Socket.h"
+#include "SockAddress.h"
 
 namespace notifex
 {
@@ -20,11 +21,9 @@ class EventBase;
 class TCPListener
 {
 public:
-    typedef std::function<void (int sock_fd)> NewConnectionCallback;
+    typedef std::function<void (int sock_fd, const SockAddress&)> NewConnectionCallback;
 
-    explicit TCPListener(uint16_t port, void (*callback)(int, int, void *));
-
-    explicit TCPListener(EventBase *event_base, const sockaddr *serv_addr);
+    TCPListener(EventBase *event_base, const SockAddress &listen_addr);
     ~TCPListener();
 
     void SetNewConnectionCallback(const NewConnectionCallback &cb)

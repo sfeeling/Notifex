@@ -26,8 +26,8 @@ public:
 
     explicit Buffer(size_t initialSize = kInitialSize)
             : buffer_(kCheapPrepend + initialSize),
-              readerIndex_(kCheapPrepend),
-              writerIndex_(kCheapPrepend)
+              reader_index_(kCheapPrepend),
+              writer_index_(kCheapPrepend)
     {
         assert(ReadableBytes() == 0);
         assert(WritableBytes() == initialSize);
@@ -35,23 +35,23 @@ public:
     }
 
     size_t ReadableBytes() const
-    { return writerIndex_ - readerIndex_; }
+    { return writer_index_ - reader_index_; }
 
     size_t WritableBytes() const
-    { return buffer_.size() - writerIndex_; }
+    { return buffer_.size() - writer_index_; }
 
     size_t PrependableBytes() const
-    { return readerIndex_; }
+    { return reader_index_; }
 
     void swap(Buffer& rhs)
     {
         buffer_.swap(rhs.buffer_);
-        std::swap(readerIndex_, rhs.readerIndex_);
-        std::swap(writerIndex_, rhs.writerIndex_);
+        std::swap(reader_index_, rhs.reader_index_);
+        std::swap(writer_index_, rhs.writer_index_);
     }
 
     const char* peek() const
-    { return begin() + readerIndex_; }
+    { return begin() + reader_index_; }
 
     const char* findCRLF() const
     {
@@ -91,7 +91,7 @@ public:
         assert(len <= ReadableBytes());
         if (len < ReadableBytes())
         {
-            readerIndex_ += len;
+            reader_index_ += len;
         }
         else
         {
@@ -128,8 +128,8 @@ public:
 
     void retrieveAll()
     {
-        readerIndex_ = kCheapPrepend;
-        writerIndex_ = kCheapPrepend;
+        reader_index_ = kCheapPrepend;
+        writer_index_ = kCheapPrepend;
     }
 
     string retrieveAllAsString()
@@ -177,21 +177,21 @@ public:
     }
 
     char* beginWrite()
-    { return begin() + writerIndex_; }
+    { return begin() + writer_index_; }
 
     const char* beginWrite() const
-    { return begin() + writerIndex_; }
+    { return begin() + writer_index_; }
 
     void hasWritten(size_t len)
     {
         assert(len <= WritableBytes());
-        writerIndex_ += len;
+        writer_index_ += len;
     }
 
     void unwrite(size_t len)
     {
         assert(len <= ReadableBytes());
-        writerIndex_ -= len;
+        writer_index_ -= len;
     }
 
     ///
@@ -330,9 +330,9 @@ public:
     void prepend(const void* /*restrict*/ data, size_t len)
     {
         assert(len <= PrependableBytes());
-        readerIndex_ -= len;
+        reader_index_ -= len;
         auto d = static_cast<const char*>(data);
-        std::copy(d, d+len, begin()+readerIndex_);
+        std::copy(d, d+len, begin()+reader_index_);
     }
 
     void shrink(size_t reserve)
@@ -368,26 +368,26 @@ private:
         if (WritableBytes() + PrependableBytes() < len + kCheapPrepend)
         {
             // FIXME: move readable data
-            buffer_.resize(writerIndex_+len);
+            buffer_.resize(writer_index_+len);
         }
         else
         {
             // move readable data to the front, make space inside buffer
-            assert(kCheapPrepend < readerIndex_);
+            assert(kCheapPrepend < reader_index_);
             size_t readable = ReadableBytes();
-            std::copy(begin()+readerIndex_,
-                      begin()+writerIndex_,
+            std::copy(begin()+reader_index_,
+                      begin()+writer_index_,
                       begin()+kCheapPrepend);
-            readerIndex_ = kCheapPrepend;
-            writerIndex_ = readerIndex_ + readable;
+            reader_index_ = kCheapPrepend;
+            writer_index_ = reader_index_ + readable;
             assert(readable == ReadableBytes());
         }
     }
 
 private:
     std::vector<char> buffer_;
-    size_t readerIndex_;
-    size_t writerIndex_;
+    size_t reader_index_;
+    size_t writer_index_;
 
     static const char kCRLF[];
 

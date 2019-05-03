@@ -15,7 +15,7 @@
 
 using namespace notifex;
 
-void TCPServer::NewConnection(int sock_fd)
+void TCPServer::NewConnection(int sock_fd, const SockAddress &peer_addr)
 {
     char buf[64];
     snprintf(buf, sizeof(buf), "-%s#%d", ip_port_.c_str(), next_conn_id);
@@ -24,9 +24,16 @@ void TCPServer::NewConnection(int sock_fd)
 
     LOG(INFO) << "TcpServer::newConnection [" << name_
              << "] - new connection [" << conn_name
-             << "] from ";// << peerAddr.toIpPort();
+             << "] from " << peer_addr.ToIpPort();
 
-    TCPConnectionPtr conn(new TCPConnection(event_base_, conn_name, sock_fd));
+    SockAddress local_addr(Socket::GetLocalAddr(sock_fd));
+
+
+    TCPConnectionPtr conn(new TCPConnection(event_base_,
+                                            conn_name,
+                                            sock_fd,
+                                            local_addr,
+                                            peer_addr));
     connections_[conn_name] = conn;
     conn->SetConnectionCallback(connection_callback_);
     conn->SetMessageCallback(message_callback_);
@@ -57,26 +64,19 @@ void TCPServer::RemoveConnectionInBase(const TCPConnectionPtr &conn)
     // FIXME: event_base_->QueueInBase(std::bind(&TCPConnection::ConnectDestroyed, conn));
 }
 
-TCPServer::TCPServer(EventBase *event_base, const sockaddr *serv_addr, const std::string &name)
+TCPServer::TCPServer(EventBase *event_base, const SockAddress &listen_addr, const std::string &name)
     :   event_base_(event_base), // FIXME: 需要检测非空
-        ip_port_("9898"),
+        ip_port_(listen_addr.ToIpPort()),
         name_(name),
-        listener_(new TCPListener(event_base, serv_addr)),
+        listener_(new TCPListener(event_base, listen_addr)),
         connection_callback_(DefaultConnectionCallback),
         message_callback_(DefaultMessageCallback),
         next_conn_id(1)
 {
-    /*  到时候写在外部
-    sockaddr_in serv_addr;
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = ::htonl(INADDR_ANY);
-    serv_addr.sin_port = ::htons(9898);
-     */
-
     listener_->SetNewConnectionCallback(
-            std::bind(&TCPServer::NewConnection, this, _1));
+            std::bind(&TCPServer::NewConnection, this, _1, _2));
 }
+
 
 TCPServer::~TCPServer()
 {
@@ -103,3 +103,5 @@ void TCPServer::Start()
 
     // FIXME: event_base_->RunInBase(std::bind(&TCPListener::Listen, get_pointer(listener_)));
 }
+
+

@@ -103,6 +103,4 @@ private:
 }   // namespace notifex
 
 
-
-
-#endif //NOTIFEX_CHANNEL_H
+#endif // NOTIFEX_CHANNEL_H

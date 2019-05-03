@@ -30,7 +30,9 @@ public:
         kReusePort
     };
 
-    TCPServer(EventBase *event_base, const sockaddr *serv_addr, const std::string &name);
+    TCPServer(EventBase *event_base,
+              const SockAddress &listen_addr,
+              const std::string &name);
     ~TCPServer();
 
     const std::string &IpPort() const { return ip_port_; }
@@ -55,7 +57,7 @@ public:
     }
 
 private:
-    void NewConnection(int sock_fd);
+    void NewConnection(int sock_fd, const SockAddress &peer_addr);
 
     void RemoveConnection(const TCPConnectionPtr &conn);
 

@@ -8,6 +8,7 @@
 #include "notifex.h"
 #include "TCPServer.h"
 #include "Socket.h"
+#include "SockAddress.h"
 
 #include <glog/logging.h>
 
@@ -30,14 +31,10 @@ int main(int argc, char *argv[])
     // 输出到屏幕
     FLAGS_logtostderr = 1;
 
-    sockaddr_in serv_addr;
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = ::htonl(INADDR_ANY);
-    serv_addr.sin_port = ::htons(9898);
 
     EventBase event_base;
-    TCPServer server(&event_base, (sockaddr *)&serv_addr,
+    SockAddress listen_addr(9898);
+    TCPServer server(&event_base, listen_addr,
                      "EchoServer");
     server.SetConnectionCallback([](const TCPConnectionPtr &conn)
                                  {

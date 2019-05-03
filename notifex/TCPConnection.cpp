@@ -25,14 +25,16 @@ void notifex::DefaultMessageCallback(const TCPConnectionPtr& conn, Buffer* buffe
     // FIXME: 这里需要把数据从buf取出来
 }
 
-TCPConnection::TCPConnection(EventBase *event_base, const std::string &name, int sock_fd)
+TCPConnection::TCPConnection(EventBase *event_base, const std::string &name, int sock_fd,
+                             const SockAddress &local_addr, const SockAddress &peer_addr)
     :   event_base_(event_base/* TODO： 必须为非空 */),
         name_(name),
         state_(kConnecting),
         reading_(true),
         socket_(new Socket(sock_fd)),
-        channel_(new Channel(event_base, sock_fd))
-        // FIXME: Channel_(
+        channel_(new Channel(event_base, sock_fd)),
+        local_addr_(local_addr),
+        peer_addr_(peer_addr)
 {
     channel_->SetReadCallback(
             std::bind(&TCPConnection::HandleRead, this));

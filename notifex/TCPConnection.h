@@ -10,6 +10,7 @@
 
 #include "Buffer.h"
 #include "Callbacks.h"
+#include "SockAddress.h"
 
 namespace notifex
 {
@@ -22,7 +23,8 @@ class EventBase;
 class TCPConnection : public std::enable_shared_from_this<TCPConnection>
 {
 public:
-    TCPConnection(EventBase *event_base, const std::string &name, int sock_fd);
+    TCPConnection(EventBase *event_base, const std::string &name, int sock_fd,
+                  const SockAddress &local_addr, const SockAddress &peer_addr);
     ~TCPConnection();
 
     EventBase *GetBase() const { return event_base_; }
@@ -91,7 +93,9 @@ private:
 
     std::unique_ptr<Socket> socket_;
     std::unique_ptr<Channel> channel_;
-    // 考虑要不要保存端点信息Address
+
+    const SockAddress local_addr_;
+    const SockAddress peer_addr_;
 
     ConnectionCallback connection_callback_;
     MessageCallback message_callback_;

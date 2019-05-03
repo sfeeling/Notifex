@@ -48,4 +48,4 @@ inline uint16_t NetworkToHost16(uint16_t net16)
 
 }   // namespace notifex
 
-#endif //NOTIFEX_ENDIAN_H
+#endif // NOTIFEX_ENDIAN_H

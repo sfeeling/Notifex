@@ -22,7 +22,7 @@ ssize_t Buffer::ReadFd(int fd, int *savedErrno)
     char extrabuf[65536];
     struct iovec vec[2];
     const size_t writable = WritableBytes();
-    vec[0].iov_base = begin()+writerIndex_;
+    vec[0].iov_base = begin()+writer_index_;
     vec[0].iov_len = writable;
     vec[1].iov_base = extrabuf;
     vec[1].iov_len = sizeof extrabuf;
@@ -36,11 +36,11 @@ ssize_t Buffer::ReadFd(int fd, int *savedErrno)
     }
     else if (implicit_cast<size_t>(n) <= writable)
     {
-        writerIndex_ += n;
+        writer_index_ += n;
     }
     else
     {
-        writerIndex_ = buffer_.size();
+        writer_index_ = buffer_.size();
         append(extrabuf, n - writable);
     }
     // if (n == writable + sizeof extrabuf)
