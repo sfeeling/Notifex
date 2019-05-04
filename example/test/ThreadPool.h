@@ -68,6 +68,7 @@ public:
     template <typename F>
     void execute(F&& task)
     {
+
         {
             std::lock_guard<std::mutex> lk(data_->mtx_);
             data_->tasks_.emplace(std::forward<F>(task));

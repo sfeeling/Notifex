@@ -179,13 +179,13 @@ void Epoller::Update(int operation, Channel *channel)
 
 void Epoller::Poll(int timeout_ms, ChannelList *active_channels)
 {
+    // FIXME: 同步
     LOG(INFO) << "fd total count " << channels_.size();
     int num_events = ::epoll_wait(epoll_fd_,
                                  &*events_.begin(),
                                  static_cast<int>(events_.size()),
                                  timeout_ms);
     int saved_errno = errno;
-    // Timestamp now(Timestamp::now());
     if (num_events > 0)
     {
         LOG(INFO) << num_events << " events happened";
@@ -213,6 +213,7 @@ void Epoller::Poll(int timeout_ms, ChannelList *active_channels)
 
 void Epoller::UpdateChannel(Channel *channel)
 {
+    std::lock_guard<std::mutex> lck(mutex_);
     const int index = channel->Index();
     LOG(INFO) << "fd = " << channel->Fd()
               << " events = " << channel->Events() << " index = " << index;
@@ -256,6 +257,7 @@ void Epoller::UpdateChannel(Channel *channel)
 
 void Epoller::RemoveChannel(Channel *channel)
 {
+    std::lock_guard<std::mutex> lck(mutex_);
     int fd = channel->Fd();
     LOG(INFO) << "fd = " << fd;
     assert(channels_.find(fd) != channels_.end());
@@ -263,9 +265,14 @@ void Epoller::RemoveChannel(Channel *channel)
     assert(channel->IsNoneEvent());
     int index = channel->Index();
     assert(index == kAdded || index == kDeleted);
+
+
     size_t n = channels_.erase(fd);
     (void)n;
     assert(n == 1);
+
+
+
 
     if (index == kAdded)
     {

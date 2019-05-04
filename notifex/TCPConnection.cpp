@@ -54,12 +54,12 @@ TCPConnection::TCPConnection(EventBase *event_base, const std::string &name, int
 TCPConnection::~TCPConnection()
 {
     LOG(INFO) << "TCPConnection::dtor[" << name_ << "] at " << this
-              << " fd=" << "" // FIXME: channel->fd()
+              << " fd=" << channel_->Fd()
               << " state=" << StateToString();
     assert(state_ == kDisconnected);
 }
 
-void TCPConnection::HandleRead()
+void TCPConnection::ReadRead()
 {
     int saved_errno = 0;
     ssize_t n = input_buffer_.ReadFd(channel_->Fd(), &saved_errno);
@@ -69,7 +69,8 @@ void TCPConnection::HandleRead()
     }
     else if (n == 0)
     {
-        HandleClose();
+        //HandleClose();
+        event_base_->QueueInBase(std::bind(&TCPConnection::HandleClose, shared_from_this()));
     }
     else
     {
@@ -77,6 +78,12 @@ void TCPConnection::HandleRead()
         LOG(ERROR) << "TCPConnection::HandleRead";
         HandleError();
     }
+}
+
+
+void TCPConnection::HandleRead()
+{
+    event_base_->GetThreadPool()->execute(std::bind(&TCPConnection::ReadRead, shared_from_this()));
 }
 
 void TCPConnection::HandleWrite()
@@ -94,9 +101,9 @@ void TCPConnection::HandleWrite()
                 channel_->DisableWriting();
                 if (write_complete_callback_)
                 {
-                    event_base_->GetThreadPool()->execute(
-                            std::bind(write_complete_callback_, shared_from_this()));
-                    // FIXME: event_base_->QueueInBase(std::bind(write_complete_callback_, shared_from_this()));
+                    //event_base_->GetThreadPool()->execute(
+                         //   std::bind(write_complete_callback_, shared_from_this()));
+                    event_base_->QueueInBase(std::bind(write_complete_callback_, shared_from_this()));
                 }
                 if (state_ == kDisconnecting)
                 {
@@ -122,6 +129,11 @@ void TCPConnection::HandleWrite()
 
 void TCPConnection::HandleClose()
 {
+    // 由于多线程执行，可能多次执行关闭，如果已经被关闭，则不需要再次处理
+    // 虽然存在逻辑缺陷，但是暂时解决了问题
+    if (state_ == kDisconnected)
+        return;
+
     LOG(INFO) << "fd = " << channel_->Fd()
               << " state = " << StateToString();
     assert(state_ == kConnected || state_ == kDisconnecting);
@@ -164,7 +176,7 @@ void TCPConnection::StartReadInBase()
 void TCPConnection::StopRead()
 {
     event_base_->GetThreadPool()->execute(
-            std::bind(&TCPConnection::StopReadInBase, this));
+           std::bind(&TCPConnection::StopReadInBase, this));
     // FIXME: event_base_->RunInBase(std::bind(&TCPConnection::StopReadInBase, this));
 }
 
@@ -211,7 +223,7 @@ void TCPConnection::Shutdown()
     {
         SetState(kDisconnecting);
         event_base_->GetThreadPool()->execute(
-                std::bind(&TCPConnection::ShutdownInBase, this));
+               std::bind(&TCPConnection::ShutdownInBase, this));
         // FIXME: event_base_->RunInBase(std::bind(&TCPConnection::ShutdownInBase, this));
     }
 }
@@ -295,9 +307,9 @@ void TCPConnection::SendInBase(const void *message, size_t len)
             remaining = len - nwrote;
             if (remaining == 0 && write_complete_callback_)
             {
-                event_base_->GetThreadPool()->execute(
-                        std::bind(write_complete_callback_, shared_from_this()));
-                // FIXME:: event_base_->QueueInBase(std::bind(write_complete_callback_, shared_from_this()));
+                //event_base_->GetThreadPool()->execute(
+                       // std::bind(write_complete_callback_, shared_from_this()));
+                event_base_->QueueInBase(std::bind(write_complete_callback_, shared_from_this()));
             }
         }
         else // nwrote < 0
@@ -322,9 +334,9 @@ void TCPConnection::SendInBase(const void *message, size_t len)
             && oldLen < high_water_mark_
             && high_water_mark_callback_)
         {
-            event_base_->GetThreadPool()->execute(
-                    std::bind(high_water_mark_callback_, shared_from_this(), oldLen + remaining));
-            // FIXME: event_base_->QueueInBase(std::bind(high_water_mark_callback_, shared_from_this(), oldLen + remaining));
+            //event_base_->GetThreadPool()->execute(
+                    //std::bind(high_water_mark_callback_, shared_from_this(), oldLen + remaining));
+            event_base_->QueueInBase(std::bind(high_water_mark_callback_, shared_from_this(), oldLen + remaining));
         }
         output_buffer_.append(static_cast<const char*>(message)+nwrote, remaining);
         if (!channel_->IsWriting())

@@ -72,6 +72,7 @@ private:
     enum ConnState { kDisconnected, kConnecting, kConnected, kDisconnecting };
 
     void HandleRead();
+    void ReadRead();
     void HandleWrite();
     void HandleClose();
     void HandleError();

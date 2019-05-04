@@ -68,23 +68,17 @@ EventBase::EventBase()
         event_handling_(false),
         calling_pending_functors_(false),
         iteration_(0),
-        wakeup_fd_(CreateEventFd()),
-        wakeup_channel_(new Channel(this, wakeup_fd_)),
         current_active_channel_(nullptr)
 {
     LOG(INFO) << "EventBase Created " << this;
     // FIXME: 参数绑定显示错误
-    wakeup_channel_->SetReadCallback(
-            std::bind(&EventBase::HandleRead, this));
-    wakeup_channel_->EnableReading();
+
 }
 
 EventBase::~EventBase()
 {
     LOG(INFO) << "EventBase::~EventBase";
-    wakeup_channel_->DisableAll();
-    wakeup_channel_->Remove();
-    ::close(wakeup_fd_);
+
 }
 
 void EventBase::AddEvent(const Event &event)
@@ -284,7 +278,8 @@ void EventBase::UpdateChannel(Channel *channel)
 
 void EventBase::RemoveChannel(Channel *channel)
 {
-    if (event_handling_)
+    std::lock_guard<std::mutex> lck(mutex_);
+    if (event_handling_ && false)
     {
         // FIXME: assert(current_active_channel_ == channel ||
         //              std::find(active_channels_.begin(), active_channels_.end(), channel) == active_channels_.end());
@@ -299,15 +294,6 @@ bool EventBase::HasChannel(Channel *channel)
     return demultiplexer_->HasChannel(channel);
 }
 
-void EventBase::HandleRead()
-{
-    uint64_t one = 1;
-    ssize_t n = ::read(wakeup_fd_, &one, sizeof(one));
-    if (n != sizeof(one))
-    {
-        LOG(ERROR) << "EventLoop::handleRead() reads " << n << " bytes instead of 8";
-    }
-}
 
 void EventBase::DoPendingFunctors()
 {
@@ -334,24 +320,28 @@ void EventBase::NewDispatch()
     while (!done_)
     {
         active_channels_.clear();
+
         demultiplexer_->Poll(kPollTimeMs, &active_channels_);
+
         ++iteration_;
         // TODO: TEST
         if (false)
             PrintActiveChannels();
         // TODO sort channel by priority
         // FIXME: 考虑要不要把执行顺序带上
-        // event_handling_ = true;
+        event_handling_ = true;
         for (auto channel : active_channels_)
         {
+            // FIXME: 关键位置
             current_active_channel_ = channel;
             // thread_pool_.execute(std::bind(&Channel::HandleEvent, current_active_channel_));
             current_active_channel_->HandleEvent();
+            //channel->HandleEvent();
         }
         current_active_channel_ = nullptr;  // NULL
         event_handling_ = false;
         // 这里没搞懂
-        // FIXME: DoPendingFunctors();
+        DoPendingFunctors();
     }
 
     LOG(INFO) << "EventBase " << " stop dispatching";
@@ -364,6 +354,12 @@ void EventBase::PrintActiveChannels() const
     {
         LOG(INFO) << "{" << channel->ReventsToString() << "} ";
     }
+}
+
+void EventBase::QueueInBase(EventBase::Functor cb)
+{
+    std::lock_guard<std::mutex> lck(mutex_);
+    pending_functors_.push_back(std::move(cb));
 }
 
 

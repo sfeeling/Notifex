@@ -7,6 +7,7 @@
 
 #include <sys/epoll.h>
 
+#include <mutex>
 #include <vector>
 
 #include "Demultiplexer.h"
@@ -52,6 +53,7 @@ private:
 
     int epoll_fd_;
     EventList events_;
+    std::mutex mutex_;
 };
 
 

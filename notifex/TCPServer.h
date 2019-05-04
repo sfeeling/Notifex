@@ -10,6 +10,7 @@
 
 #include <atomic>
 #include <map>
+#include <mutex>
 
 #include "Types.h"
 #include "TCPConnection.h"
@@ -77,6 +78,7 @@ private:
     int next_conn_id;
     ConnectionMap connections_;
 
+    std::mutex mutex_;
 };
 
 }   // namespace notifex

@@ -18,7 +18,6 @@
 
 #include "Callbacks.h"
 #include "Event.h"
-#include "RIO.h"
 #include "TCPListener.h"
 #include "ThreadPool.h"
 #include "Timer.h"
@@ -57,6 +56,8 @@ public:
     //void QueueInBase(Functor cb);
 
     void Wakeup();
+
+    void QueueInBase(Functor cb);
     void UpdateChannel(Channel *channel);
     void RemoveChannel(Channel *channel);
     bool HasChannel(Channel *channel);
@@ -100,14 +101,14 @@ private:
 
     bool dispatching_;
     std::atomic<bool> done_;
-    bool event_handling_;
+    std::atomic<bool> event_handling_;
 
     bool calling_pending_functors_;
     int64_t iteration_;
     // 复用器
     std::unique_ptr<Demultiplexer> demultiplexer_;
-    int wakeup_fd_;
-    std::unique_ptr<Channel> wakeup_channel_;
+    //int wakeup_fd_;
+    //std::unique_ptr<Channel> wakeup_channel_;
 
     // 活动通道
     ChannelList active_channels_;

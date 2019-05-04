@@ -17,6 +17,7 @@ using namespace notifex;
 
 void TCPServer::NewConnection(int sock_fd, const SockAddress &peer_addr)
 {
+
     char buf[64];
     snprintf(buf, sizeof(buf), "-%s#%d", ip_port_.c_str(), next_conn_id);
     ++next_conn_id;
@@ -40,6 +41,8 @@ void TCPServer::NewConnection(int sock_fd, const SockAddress &peer_addr)
     conn->SetWriteCompleteCallback(write_complete_callback_);
     conn->SetCloseCallback(
             std::bind(&TCPServer::RemoveConnection, this, _1));
+
+
     event_base_->GetThreadPool()->execute(
             std::bind(&TCPConnection::ConnectEstablished, conn));
     // FIXME: event_base_->RunInBase(std::bind(&TCPConnection::ConnectEstablished, conn));
@@ -47,21 +50,24 @@ void TCPServer::NewConnection(int sock_fd, const SockAddress &peer_addr)
 
 void TCPServer::RemoveConnection(const TCPConnectionPtr &conn)
 {
-    event_base_->GetThreadPool()->execute(
-            std::bind(&TCPServer::RemoveConnectionInBase, this, conn));
-    // FIXME: event_base_->RunInBase(std::bind(&TCPServer::RemoveConnectionInBase, this, conn));
+    event_base_->QueueInBase(std::bind(&TCPServer::RemoveConnectionInBase, this, conn));
 }
 
 void TCPServer::RemoveConnectionInBase(const TCPConnectionPtr &conn)
 {
+
     LOG(INFO) << "TCPServer::RemoveConnectionInBase [" << name_
              << "] - connection " << conn->Name();
+
     size_t n = connections_.erase(conn->Name());
-    (void)n;
+    LOG(INFO) << "删除后n为: " << n << "    " << conn->Name();
+    (void) n;
     assert(n == 1);
-    event_base_->GetThreadPool()->execute(
-            std::bind(&TCPConnection::ConnectDestroyed, conn));
-    // FIXME: event_base_->QueueInBase(std::bind(&TCPConnection::ConnectDestroyed, conn));
+
+    //conn->ConnectDestroyed();
+    //event_base_->GetThreadPool()->execute(
+           // std::bind(&TCPConnection::ConnectDestroyed, conn));
+    event_base_->QueueInBase(std::bind(&TCPConnection::ConnectDestroyed, conn));
 }
 
 TCPServer::TCPServer(EventBase *event_base, const SockAddress &listen_addr, const std::string &name)
@@ -88,8 +94,7 @@ TCPServer::~TCPServer()
         item.second.reset();
 
         conn->GetBase()->GetThreadPool()->execute(
-                std::bind(&TCPConnection::ConnectDestroyed, conn));
-
+               std::bind(&TCPConnection::ConnectDestroyed, conn));
         // FIXME: conn->GetBase()->RunInBase(std::bind(&TCPConnection::ConnectDestroyed, conn));
     }
 }
@@ -98,9 +103,9 @@ void TCPServer::Start()
 {
     // FIXME: 参考muduo
     assert(!listener_->Listenning());
+
     event_base_->GetThreadPool()->execute(
             std::bind(&TCPListener::Listen, get_pointer(listener_)));
-
     // FIXME: event_base_->RunInBase(std::bind(&TCPListener::Listen, get_pointer(listener_)));
 }
 
