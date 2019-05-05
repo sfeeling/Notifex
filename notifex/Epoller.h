@@ -26,9 +26,6 @@ public:
     explicit Epoller(EventBase *event_base);
     ~Epoller() override;
 
-    // Demultiplex
-    std::vector<int> GetActiveList(const int &msec) override;
-
     void Poll(int timeout_ms, ChannelList *active_channels) override;
     void UpdateChannel(Channel *channel) override;
     void RemoveChannel(Channel *channel) override;

@@ -172,7 +172,7 @@ void EventBase::Dispatch()
         LOG(INFO) << "Timeout: " << timeout;
 
         // IO复用,即调用epoll
-        std::vector<int> active_list = demultiplexer_->GetActiveList(timeout);
+        std::vector<int> active_list;// = demultiplexer_->GetActiveList(timeout);
 
         // 处理每个计时器事件
         if (!timer_q_.empty())

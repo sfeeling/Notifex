@@ -29,9 +29,6 @@ public:
     // 原构造函数
     Demultiplexer() = default;
 
-    // Demultiplex
-    virtual std::vector<int> GetActiveList(const int &msec) = 0;
-
     // 返回的是active channels
     virtual void Poll(int timeout_ms, ChannelList *active_channels) = 0;
 

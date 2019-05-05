@@ -35,25 +35,6 @@ namespace
     const int kDeleted = 2;
 }
 
-
-std::vector<int> Epoller::GetActiveList(const int &msec)
-{
-    std::vector<int> active_list;
-    // TODO ACTIVE_SIZE应为最大的fd数，而不是返回数
-    int n_fds = epoll_wait(ep_fd_, event_list_, ACTIVE_SIZE, msec);
-    if (n_fds == 0)
-        return active_list;
-    if (n_fds < 0)
-    {
-        std::cerr << "epoll_wait error" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    for (int i = 0; i < n_fds; ++i)
-        active_list.push_back(event_list_[i].data.fd);
-
-    return active_list;
-}
-
 Epoller::Epoller()
     :   Demultiplexer(nullptr),
         ep_fd_(epoll_create1(0))
