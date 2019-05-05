@@ -27,7 +27,7 @@ using namespace notifex;
 namespace
 {
 
-const int kPollTimeMs = 10000;
+const int kPollTimeMs = 5000;
 
 int CreateEventFd()
 {
@@ -81,32 +81,12 @@ EventBase::~EventBase()
 
 }
 
-void EventBase::AddEvent(const Event &event)
-{
-    event_hash_[event.fd_] = std::make_shared<Event>(event);
-    demultiplexer_->RegisterEvent(event);
-}
-
-void EventBase::AddEvent(const std::shared_ptr<Event> &ev_ptr)
-{
-    // TODO: 暂未测试
-    event_hash_[ev_ptr->fd_] = ev_ptr;
-    demultiplexer_->RegisterEvent(*ev_ptr);
-    LOG(WARNING) << "ADDEVENT";
-}
 
 void EventBase::AddTimer(const Timer &timer)
 {
     timer_q_.push(std::make_shared<Timer>(timer));
     LOG(INFO) << "AddTimer GetTime: " << timer_q_.top()->GetTriggeringTime();
 
-}
-
-void EventBase::AddListener(const TCPListener &listener)
-{
-    listener_ = std::make_shared<TCPListener>(listener);
-    demultiplexer_->RegisterListener(listener);
-    LOG(INFO) << "AddTCPListener" << "listen fd:" << listener_->GetListenFd();
 }
 
 void EventBase::StartUpTimer()
@@ -137,7 +117,7 @@ void EventBase::Dispatch()
     bool done = false;
     while (!done)
     {
-        if (event_hash_.empty() && timer_q_.empty())
+        if ( true)//event_hash_.empty() && timer_q_.empty())
             done = true;
 
         // 如果没有计时器事件，timeout为-1让epoll永久阻塞
@@ -235,15 +215,15 @@ void EventBase::HandleEvents(const std::vector<int> &active_list)
         {
             // TODO: 创建连接事件
             int con_fd = listener_->Accept();
-            std::shared_ptr<Event> ev_ptr = std::make_shared<Event>(con_fd, listener_->callback_);
-            AddEvent(ev_ptr);
+//            std::shared_ptr<Event> ev_ptr = std::make_shared<Event>(con_fd, listener_->callback_);
+ //           AddEvent(ev_ptr);
             LOG(WARNING) << "创建连接: " << fd;
         }
         else
         {
-            std::shared_ptr<Event> ev_ptr = event_hash_[fd];
+//            std::shared_ptr<Event> ev_ptr = event_hash_[fd];
             // ev_ptr->Trigger();
-            thread_pool_.execute(std::bind(&Event::Trigger, ev_ptr));
+//            thread_pool_.execute(std::bind(&Event::Trigger, ev_ptr));
         }
 
 
@@ -253,22 +233,6 @@ void EventBase::HandleEvents(const std::vector<int> &active_list)
 void EventBase::Quit()
 {
     done_ = true;
-}
-
-//void EventBase::RunInBase(EventBase::Functor cb)
-//{
-//    cb();
-//}
-
-//void EventBase::QueueInBase(EventBase::Functor cb)
-//{
-//    std::lock_guard<std::mutex> lck(mutex_);
-//    pending_functors_.push_back(std::move(cb));
-//}
-
-void EventBase::Wakeup()
-{
-
 }
 
 void EventBase::UpdateChannel(Channel *channel)
@@ -327,12 +291,10 @@ void EventBase::NewDispatch()
         // TODO: TEST
         if (false)
             PrintActiveChannels();
-        // TODO sort channel by priority
-        // FIXME: 考虑要不要把执行顺序带上
+        // TODO: 执行顺序 sort channel by priority
         event_handling_ = true;
         for (auto channel : active_channels_)
         {
-            // FIXME: 关键位置
             current_active_channel_ = channel;
             // thread_pool_.execute(std::bind(&Channel::HandleEvent, current_active_channel_));
             current_active_channel_->HandleEvent();

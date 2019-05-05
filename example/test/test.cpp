@@ -5,7 +5,6 @@
 #include <string>
 #include <iostream>
 
-#include "notifex.h"
 #include "TCPServer.h"
 #include "Socket.h"
 #include "SockAddress.h"

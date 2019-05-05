@@ -154,7 +154,17 @@ void TCPConnection::HandleError()
 
 void TCPConnection::ForceClose()
 {
+    if (state_ == kConnected || state_ == kDisconnecting)
+    {
+        SetState(kDisconnecting);
+        event_base_->QueueInBase(std::bind(&TCPConnection::ForceCloseInBase, shared_from_this()));
+    }
+}
 
+void TCPConnection::ForceCloseInBase()
+{
+    if (state_ == kConnected || state_ == kDisconnecting)
+        HandleClose();
 }
 
 void TCPConnection::StartRead()
@@ -234,10 +244,6 @@ void TCPConnection::ShutdownInBase()
         socket_->ShutdownWrite();
 }
 
-void TCPConnection::ForceCloseInBase()
-{
-
-}
 
 std::string TCPConnection::StateToString() const
 {
@@ -317,7 +323,7 @@ void TCPConnection::SendInBase(const void *message, size_t len)
             nwrote = 0;
             if (errno != EWOULDBLOCK)
             {
-                LOG(ERROR) << "TcpConnection::sendInLoop";
+                LOG(ERROR) << "TCPConnection::SendInBase";
                 if (errno == EPIPE || errno == ECONNRESET) // FIXME: any others?
                 {
                     faultError = true;

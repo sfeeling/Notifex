@@ -8,7 +8,7 @@
 
 #include "Callbacks.h"
 #include "EventBase.h"
-#include "TCPListener.h"
+#include "Listener.h"
 #include "Socket.h"
 
 #include <glog/logging.h>
@@ -74,7 +74,7 @@ TCPServer::TCPServer(EventBase *event_base, const SockAddress &listen_addr, cons
     :   event_base_(event_base), // FIXME: 需要检测非空
         ip_port_(listen_addr.ToIpPort()),
         name_(name),
-        listener_(new TCPListener(event_base, listen_addr)),
+        listener_(new Listener(event_base, listen_addr)),
         connection_callback_(DefaultConnectionCallback),
         message_callback_(DefaultMessageCallback),
         next_conn_id(1)
@@ -105,8 +105,8 @@ void TCPServer::Start()
     assert(!listener_->Listenning());
 
     event_base_->GetThreadPool()->execute(
-            std::bind(&TCPListener::Listen, get_pointer(listener_)));
-    // FIXME: event_base_->RunInBase(std::bind(&TCPListener::Listen, get_pointer(listener_)));
+            std::bind(&Listener::Listen, get_pointer(listener_)));
+    // FIXME: event_base_->RunInBase(std::bind(&Listener::Listen, get_pointer(listener_)));
 }
 
 

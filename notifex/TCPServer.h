@@ -12,6 +12,7 @@
 #include <map>
 #include <mutex>
 
+#include "EventBase.h"
 #include "Types.h"
 #include "TCPConnection.h"
 
@@ -19,7 +20,7 @@
 namespace notifex
 {
 
-class TCPListener;
+class Listener;
 class EventBase;
 
 class TCPServer
@@ -69,7 +70,7 @@ private:
     EventBase *event_base_;
     const std::string ip_port_;
     const std::string name_;
-    std::unique_ptr<TCPListener> listener_;
+    std::unique_ptr<Listener> listener_;
     ConnectionCallback connection_callback_;
     MessageCallback message_callback_;
     WriteCompleteCallback write_complete_callback_;

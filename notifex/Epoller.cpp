@@ -35,31 +35,6 @@ namespace
     const int kDeleted = 2;
 }
 
-void Epoller::RegisterEvent(const Event &event)
-{
-    epoll_event ep_event = { 0, { nullptr } };
-    // TODO: 考虑写事件
-    if (event.EventIn())
-        ep_event.events |= EPOLLIN;
-    if (event.EventOut())
-        ep_event.events |= EPOLLOUT;
-    ep_event.data.fd = event.fd_;
-    if (epoll_ctl(ep_fd_, EPOLL_CTL_ADD, event.fd_, &ep_event) == -1)
-    {
-        std::cerr << "epoll_ctl_add error" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-
-}
-
-void Epoller::RemoveEvent(const int &fd)
-{
-    if (epoll_ctl(ep_fd_, EPOLL_CTL_DEL, fd, &event_) == -1)
-    {
-        std::cerr << "EPOLL_CTL_DEL error" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-}
 
 std::vector<int> Epoller::GetActiveList(const int &msec)
 {
@@ -85,22 +60,6 @@ Epoller::Epoller()
 {
 
 }
-
-void Epoller::RegisterListener(const notifex::TCPListener &listener)
-{
-    epoll_event ep_event = { 0, { nullptr } };
-    ep_event.events |= EPOLLIN;
-
-    // TODO: 应该封装listen_fd_
-    ep_event.data.fd = listener.listen_fd_;
-    if (epoll_ctl(ep_fd_, EPOLL_CTL_ADD, listener.listen_fd_, &ep_event) == -1)
-    {
-        std::cerr << "epoll_ctl_add error" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-
-}
-
 
 Epoller::Epoller(EventBase *event_base)
     :   Demultiplexer(event_base),

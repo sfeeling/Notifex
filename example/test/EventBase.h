@@ -17,8 +17,7 @@
 
 
 #include "Callbacks.h"
-#include "Event.h"
-#include "TCPListener.h"
+#include "Listener.h"
 #include "ThreadPool.h"
 #include "Timer.h"
 #include "Util.h"
@@ -40,22 +39,13 @@ public:
     EventBase();
     ~EventBase();
 
-    void AddEvent(const Event &event);
-    void AddEvent(const std::shared_ptr<Event> &ev_ptr);
     void AddTimer(const Timer &timer);
-    void AddListener(const TCPListener &listener);
     //void AddSignal();
 
     void Dispatch();
     void NewDispatch();
     void Quit();
 
-    int64_t Iteration() const { return iteration_; }
-
-    //void RunInBase(Functor cb);
-    //void QueueInBase(Functor cb);
-
-    void Wakeup();
 
     void QueueInBase(Functor cb);
     void UpdateChannel(Channel *channel);
@@ -79,10 +69,6 @@ private:
     // 线程池
     ThreadPool thread_pool_;
 
-    // 事件队列
-    std::unordered_map<int, std::shared_ptr<Event>> event_hash_;
-
-
     // Timer队列的比较器
     struct cmp
     {
@@ -95,7 +81,7 @@ private:
     std::priority_queue<std::shared_ptr<Timer>, std::vector<std::shared_ptr<Timer>>, cmp> timer_q_;
 
     // TCP监听器
-    std::shared_ptr<TCPListener> listener_;
+    std::shared_ptr<Listener> listener_;
 
     typedef std::vector<Channel *> ChannelList;
 
@@ -104,12 +90,9 @@ private:
     std::atomic<bool> event_handling_;
 
     bool calling_pending_functors_;
-    int64_t iteration_;
     // 复用器
     std::unique_ptr<Demultiplexer> demultiplexer_;
-    //int wakeup_fd_;
-    //std::unique_ptr<Channel> wakeup_channel_;
-
+    int64_t iteration_;
     // 活动通道
     ChannelList active_channels_;
     Channel *current_active_channel_;

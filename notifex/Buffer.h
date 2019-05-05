@@ -22,6 +22,7 @@ class Buffer
 {
 public:
     static const size_t kCheapPrepend = 8;
+    // 默认初始值为1024
     static const size_t kInitialSize = 1024;
 
     explicit Buffer(size_t initialSize = kInitialSize)

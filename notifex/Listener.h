@@ -18,13 +18,13 @@ namespace notifex
 
 class EventBase;
 
-class TCPListener
+class Listener
 {
 public:
     typedef std::function<void (int sock_fd, const SockAddress&)> NewConnectionCallback;
 
-    TCPListener(EventBase *event_base, const SockAddress &listen_addr);
-    ~TCPListener();
+    Listener(EventBase *event_base, const SockAddress &listen_addr);
+    ~Listener();
 
     void SetNewConnectionCallback(const NewConnectionCallback &cb)
     { new_connection_callback_ = cb; }
