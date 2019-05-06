@@ -1,14 +1,16 @@
+//
+// Created by sfeeling on 19-5-6.
+//
+
 #include <arpa/inet.h>
-#include <fcntl.h>
 #include <memory.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <string>
 #include <iostream>
 
-#include "TCPServer.h"
-#include "Socket.h"
-#include "SockAddress.h"
+#include "notifex/TCPServer.h"
+#include "notifex/SockAddress.h"
 
 #include <glog/logging.h>
 
@@ -41,27 +43,11 @@ int main(int argc, char *argv[])
                                      LOG(INFO) << "Echo服务器连接已"
                                                   << (conn->Connected() ? "开启" : "断开");
                                  });
-    const int BUFF_SIZE = 512;
-    char buff[BUFF_SIZE];
-    int n;
-
-    const char text[] =
-            "HTTP/1.1 200 OK\r\n"
-            "Server: notifex/1.2.1\r\n"
-            "Content-Type: text/html;Charset=utf-8\r\n"
-            "Connection: keep-alive\r\n"
-            "\r\n";
-    server.SetMessageCallback([&](const TCPConnectionPtr &conn,
+    server.SetMessageCallback([](const TCPConnectionPtr &conn,
                                  Buffer *buf)
                               {
                                   string msg(buf->retrieveAllAsString());
                                   cout << msg;
-
-                                  conn->Send(text, sizeof(text));
-                                  int file_fd = open("poem.html", O_RDONLY);
-                                  n = read(file_fd, buff, BUFF_SIZE);
-                                  conn->Send(buff, n);
-                                  conn->ForceClose();
                               });
     server.Start();
     event_base.NewDispatch();

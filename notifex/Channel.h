@@ -25,21 +25,29 @@ public:
     ~Channel();
 
     void HandleEvent();
-    void SetReadCallback(EventCallback cb)
+
+    template <typename F>
+    void SetReadCallback(F &&cb)
     {
-        read_callback_ = std::move(cb);
+        read_callback_ = std::forward<F>(cb);
     }
-    void SetWriteCallback(EventCallback cb)
+
+    template <typename F>
+    void SetWriteCallback(F &&cb)
     {
-        write_callback_ = std::move(cb);
+        write_callback_ = std::forward<F>(cb);
     }
-    void SetCloseCallback(EventCallback cb)
+
+    template <typename F>
+    void SetCloseCallback(F &&cb)
     {
-        close_callback_ = std::move(cb);
+        close_callback_ = std::forward<F>(cb);
     }
-    void SetErrorCallback(EventCallback cb)
+
+    template <typename F>
+    void SetErrorCallback(F &&cb)
     {
-        error_callback_ = std::move(cb);
+        error_callback_ = std::forward<F>(cb);
     }
 
     int Fd() const { return fd_; }

@@ -83,7 +83,7 @@ void TCPConnection::ReadRead()
 
 void TCPConnection::HandleRead()
 {
-    event_base_->GetThreadPool()->execute(std::bind(&TCPConnection::ReadRead, shared_from_this()));
+    event_base_->RunInBase(std::bind(&TCPConnection::ReadRead, shared_from_this()));
 }
 
 void TCPConnection::HandleWrite()
@@ -101,8 +101,6 @@ void TCPConnection::HandleWrite()
                 channel_->DisableWriting();
                 if (write_complete_callback_)
                 {
-                    //event_base_->GetThreadPool()->execute(
-                         //   std::bind(write_complete_callback_, shared_from_this()));
                     event_base_->QueueInBase(std::bind(write_complete_callback_, shared_from_this()));
                 }
                 if (state_ == kDisconnecting)
@@ -169,9 +167,7 @@ void TCPConnection::ForceCloseInBase()
 
 void TCPConnection::StartRead()
 {
-    event_base_->GetThreadPool()->execute(
-            std::bind(&TCPConnection::StartReadInBase, this));
-    // FIXME: event_base_->RunInBase(std::bind(&TCPConnection::StartReadInBase, this));
+    event_base_->RunInBase(std::bind(&TCPConnection::StartReadInBase, this));
 }
 
 void TCPConnection::StartReadInBase()
@@ -185,9 +181,7 @@ void TCPConnection::StartReadInBase()
 
 void TCPConnection::StopRead()
 {
-    event_base_->GetThreadPool()->execute(
-           std::bind(&TCPConnection::StopReadInBase, this));
-    // FIXME: event_base_->RunInBase(std::bind(&TCPConnection::StopReadInBase, this));
+    event_base_->RunInBase(std::bind(&TCPConnection::StopReadInBase, this));
 }
 
 void TCPConnection::StopReadInBase()
@@ -232,9 +226,7 @@ void TCPConnection::Shutdown()
     if (state_ == kConnected)
     {
         SetState(kDisconnecting);
-        event_base_->GetThreadPool()->execute(
-               std::bind(&TCPConnection::ShutdownInBase, this));
-        // FIXME: event_base_->RunInBase(std::bind(&TCPConnection::ShutdownInBase, this));
+        event_base_->RunInBase(std::bind(&TCPConnection::ShutdownInBase, this));
     }
 }
 
@@ -313,8 +305,6 @@ void TCPConnection::SendInBase(const void *message, size_t len)
             remaining = len - nwrote;
             if (remaining == 0 && write_complete_callback_)
             {
-                //event_base_->GetThreadPool()->execute(
-                       // std::bind(write_complete_callback_, shared_from_this()));
                 event_base_->QueueInBase(std::bind(write_complete_callback_, shared_from_this()));
             }
         }
@@ -340,8 +330,6 @@ void TCPConnection::SendInBase(const void *message, size_t len)
             && oldLen < high_water_mark_
             && high_water_mark_callback_)
         {
-            //event_base_->GetThreadPool()->execute(
-                    //std::bind(high_water_mark_callback_, shared_from_this(), oldLen + remaining));
             event_base_->QueueInBase(std::bind(high_water_mark_callback_, shared_from_this(), oldLen + remaining));
         }
         output_buffer_.append(static_cast<const char*>(message)+nwrote, remaining);

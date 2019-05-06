@@ -46,8 +46,19 @@ public:
     void NewDispatch();
     void Quit();
 
+    template <typename F>
+    void RunInBase(F &&cb)
+    {
+        thread_pool_.execute(std::forward<F>(cb));
+    }
 
-    void QueueInBase(Functor cb);
+    template <typename F>
+    void QueueInBase(F &&cb)
+    {
+        std::lock_guard<std::mutex> lck(mutex_);
+        pending_functors_.emplace_back(std::forward<F>(cb));
+        //pending_functors_.push_back(std::move(cb));  对应参数列表为Functor cb
+    }
     void UpdateChannel(Channel *channel);
     void RemoveChannel(Channel *channel);
     bool HasChannel(Channel *channel);

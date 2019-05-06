@@ -318,11 +318,6 @@ void EventBase::PrintActiveChannels() const
     }
 }
 
-void EventBase::QueueInBase(EventBase::Functor cb)
-{
-    std::lock_guard<std::mutex> lck(mutex_);
-    pending_functors_.push_back(std::move(cb));
-}
 
 
 

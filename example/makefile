@@ -1,5 +1,7 @@
-test:test.cpp
-	g++ test.cpp -o test -lnotifex -pthread -lglog -I/usr/local/include/notifex
+echo:echo/echo
+
+echo/echo:echo/echo.cpp
+	g++ echo/echo.cpp -o echo/echo -lnotifex -pthread -lglog -I/usr/local/include
 
 
 # 将生成的动态库文件复制到/usr/local/lib/
@@ -19,5 +21,7 @@ run:test test_file
 test_file:
 	./test
 
-http:http.cpp poem.html
-	g++ http.cpp -o http -lnotifex -pthread -lglog
+http:http/http
+
+http/http:http/http.cpp http/poem.html
+	g++ http/http.cpp -o http/http -lnotifex -pthread -lglog -I/usr/local/include

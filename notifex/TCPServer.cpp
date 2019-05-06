@@ -43,9 +43,7 @@ void TCPServer::NewConnection(int sock_fd, const SockAddress &peer_addr)
             std::bind(&TCPServer::RemoveConnection, this, _1));
 
 
-    event_base_->GetThreadPool()->execute(
-            std::bind(&TCPConnection::ConnectEstablished, conn));
-    // FIXME: event_base_->RunInBase(std::bind(&TCPConnection::ConnectEstablished, conn));
+    event_base_->RunInBase(std::bind(&TCPConnection::ConnectEstablished, conn));
 }
 
 void TCPServer::RemoveConnection(const TCPConnectionPtr &conn)
@@ -60,13 +58,9 @@ void TCPServer::RemoveConnectionInBase(const TCPConnectionPtr &conn)
              << "] - connection " << conn->Name();
 
     size_t n = connections_.erase(conn->Name());
-    LOG(INFO) << "删除后n为: " << n << "    " << conn->Name();
     (void) n;
     assert(n == 1);
 
-    //conn->ConnectDestroyed();
-    //event_base_->GetThreadPool()->execute(
-           // std::bind(&TCPConnection::ConnectDestroyed, conn));
     event_base_->QueueInBase(std::bind(&TCPConnection::ConnectDestroyed, conn));
 }
 
@@ -93,9 +87,7 @@ TCPServer::~TCPServer()
         TCPConnectionPtr conn(item.second);
         item.second.reset();
 
-        conn->GetBase()->GetThreadPool()->execute(
-               std::bind(&TCPConnection::ConnectDestroyed, conn));
-        // FIXME: conn->GetBase()->RunInBase(std::bind(&TCPConnection::ConnectDestroyed, conn));
+        conn->GetBase()->RunInBase(std::bind(&TCPConnection::ConnectDestroyed, conn));
     }
 }
 
@@ -104,9 +96,7 @@ void TCPServer::Start()
     // FIXME: 参考muduo
     assert(!listener_->Listenning());
 
-    event_base_->GetThreadPool()->execute(
-            std::bind(&Listener::Listen, get_pointer(listener_)));
-    // FIXME: event_base_->RunInBase(std::bind(&Listener::Listen, get_pointer(listener_)));
+    event_base_->RunInBase(std::bind(&Listener::Listen, get_pointer(listener_)));
 }
 
 
